@@ -7,17 +7,17 @@ class EntityCollisions{
       let bullets = qtreeB.retrieve(i.hitbox)
       let other = qtreeE.retrieve(i.hitbox)
       for(let p of other){
-        let o = p.data
+        let o = p.Pdata
         if(o != i) o.collision(i)
       }
       for(let p of bullets){
-        p.data.collision(i)
+        p.Pdata.collision(i)
       }
     }
     for(let i of Global.bullets){
       let entities = qtreeE.retrieve(i.hitbox)
       for(let p of entities){
-        p.data.collision(i)
+        p.Pdata.collision(i)
       }
     }
   }

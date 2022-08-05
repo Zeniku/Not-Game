@@ -32,7 +32,7 @@ class Game {
       hitSize: 5,
       speed: 5,
       damage: 250,
-      peirceNum: 100,
+      peirceNum: 120,
       lifetime: 420 * 2,
       hitEffect: Effects.splash,
       color: "#FFFFFF"
@@ -47,10 +47,11 @@ class Game {
     }
     
     this.boundary = new Rect(width/2, height/2, width, height)
-    this.drawBoundary = new Rect(width/2, height/2, width /2, height /2)
-    Global.qtreeE = new QuadTree(this.boundary, 4)
-    Global.qtreeB = new QuadTree(this.boundary, 4)
-    Global.qtreeFx = new QuadTree(this.boundary, 4)
+    this.drawBoundary = new Rect(width/2, height/2, width/2, height /2)
+    
+    for(let q of Global.qIndex){
+      Global[q] = new QuadTree(this.boundary, 4)
+    }
     Global.updateQuads()
   }
   startGameLoop(){
@@ -59,7 +60,7 @@ class Game {
       Global.time = timestamp
       if(!Global.lastTimeStamp) Global.lastTimeStamp = timestamp
       let elapsed = timestamp - Global.lastTimeStamp
-      Global.delta = elapsed / Global.fps
+      Global.delta = elapsed / Global.fps / Global.slider.value
       
       if(elapsed > Global.fps){
         this.update(timestamp)
@@ -82,11 +83,6 @@ window.onload = () => {
     game.mouseY = e.touches[0].clientY
     //console.log(game.mouseX, game.mouseY)
   })
-  Global.canvas.addEventListener("touchend", e => {
-    e.preventDefault()
-    game.mouseX = game.mouseX
-    game.mouseY = game.mouseY
-    //console.log(game.mouseX, game.mouseY)
-  })
+  
   game.startGameLoop()
 }

@@ -1,19 +1,23 @@
 window.Global = {
   init(){
-    this.entities = []
-    this.bullets = []
-    this.effects = []
+    this.qIndex = ["qtreeE", "qtreeB", "qtreeFx"]
+    this.gObjIndex = ["entities", "bullets", "effects"]
+    for(let gObj of this.gObjIndex){
+      this[gObj] = []
+    }
+    this.sliderBox = document.querySelector(".box")
+    this.slider = this.sliderBox.querySelector(".slidercontainer").querySelector(".slider");
+    
     this.animationId = null
     this.container = document.querySelector(".game-container")
     this.canvas = this.container.querySelector(".game-canvas")
     this.ctx = this.canvas.getContext("2d")
-    this.canvas.height = this.height = window.innerHeight
-    this.canvas.width = this.width = window.innerWidth
-    
+    this.height = this.canvas.height = window.innerHeight 
+    this.width = this.canvas.width = window.innerWidth
     this.delta = this.time = 0
     this.fps = 1000/60
     this.lastTimeStamp = null
-    this.drawDebug = false
+    this.drawDebug = this.disableEntDraw = false
   },
   constraint({position, velocity}){
     let {width, height} = Global
@@ -38,44 +42,52 @@ window.Global = {
     return array
   },
   filterEntities(){
-    this.entities = this.filterEnt(this.entities)
-    this.bullets = this.filterEnt(this.bullets)
-    this.effects = this.filterEnt(this.effects)
+    for(let gObj of this.gObjIndex){
+      this[gObj] = this.filterEnt(this[gObj])
+    }
   },
-  entArrUp(array, addon = ent => {}, condition = ent => true, draw = false){
+  entArrUp(array, addon = ent => {}, condition){
+    this.updateEntArr(array, e => {
+      addon(e)
+      e.update(this.time)
+    }, condition)
+  },
+  entArrDraw(array, addon = ent => {}, condition){
+    this.updateEntArr(array, e => {
+      addon(e)
+      e.draw(this.ctx)
+    }, condition)
+  },
+  updateEntArr(array, do_ = ent => {}, condition = ent => true, doElse = ent => {}){
     for(let i of array){
-      if(condition(i)){
-        addon(i)
-        if(!draw){
-          i.update(this.time)
-        } else i.draw()
-      } else if(this.drawDebug){
-        let pos = i.position
-        this.ctx.fillStyle = "#FFFFFF"
-        Draw.circle(pos.x, pos.y, 2)
-        if(i.hitbox) i.hitbox.show()
-      }
+      let ent = (i.Pdata != null)? i.Pdata : i
+      if(condition(ent)) do_(ent)
     }
   },
   updateQuads(){
-    this.qtreeE.update(this.entities)
-    this.qtreeB.update(this.bullets)
-    this.qtreeFx.update(this.effects)
+    for(let q in this.qIndex){
+      this[this.qIndex[q]].update(this[this.gObjIndex[q]])
+    }
   },
   drawEntities(boundary){
-    if(this.drawDebug) this.qtreeE.draw(this.ctx)
-    let cond = e => boundary.containsXY(e.position.x, e.position.y)
-    this.entArrUp(this.entities, e => {}, cond, true)
-    this.entArrUp(this.bullets, e => {}, cond, true)
-    this.entArrUp(this.effects, e => {}, cond, true)
+    if(this.drawDebug){ 
+      this.qtreeE.draw()
+       
+      for(let q of this.gObjIndex){
+        this.updateEntArr(this[q], e => {
+          this.ctx.fillStyle = "#FFFFFF"
+          Draw.circle(e.position.x, e.position.y, 2)
+          if(e.hitbox) e.hitbox.show()
+        })
+      }
+    }
+    for(let q of this.qIndex){
+      if(!this.disableEntDraw) this.entArrDraw(this[q].query(boundary))
+    }
   },
   updateEntities(timestamp){
-    this.entArrUp(this.entities, i => {
-      this.constraint(i)
-    })
-    this.entArrUp(this.bullets, i => {
-      this.constraint(i)
-    })
+    this.entArrUp(this.entities, i => this.constraint(i))
+    this.entArrUp(this.bullets, i => this.constraint(i))
     this.entArrUp(this.effects)
     
     this.filterEntities()
@@ -83,3 +95,9 @@ window.Global = {
   }
 }
 Global.init()
+Global.slider.oninput = function(){
+  Global.sliderBox.querySelector(".value").innerHTML = this.value
+  let percentage = this.value / 10 * 100
+  //slider color illusion 
+  Global.slider.style.background = `linear-gradient(to right, #2E3369 0%, #2E3369 ${percentage}%, #f2f2f2 ${percentage}%, #f2f2f2 100%)`
+}

@@ -2,7 +2,7 @@ class Point {
   constructor(x, y, data){
     this.x = x
     this.y = y
-    this.data = data
+    this.Pdata = data
   }
 }
 class Rect {
@@ -40,14 +40,22 @@ class Rect {
       right = this.x + this.width / 4,
       top = this.y - this.height / 4,
       bottom = this.y + this.height / 4;
-      
-    let x = 0, y = 0;
-    if(quadrant == "ne") x = right, y = top
-    if(quadrant == "nw") x = left, y = top
-    if(quadrant == "se") x = right, y = bottom
-    if(quadrant == "sw") x = left, y = bottom
-    
-    return new Rect(x, y, this.width / 2, this.height / 2)
+    let comb = {
+      ne: [right, top],
+      nw: [left, top],
+      se: [right, bottom],
+      sw: [left, bottom]
+    }
+
+    for(let i in comb){
+      if(comb[quadrant] == comb[i]) {
+        return new Rect(
+          comb[i][0], 
+          comb[i][1], 
+          this.width/2,
+          this.height/2)
+      }
+    }
   }
   containsXY(x, y){
     return (
@@ -75,7 +83,7 @@ class Rect {
   }
 }
 class QuadTree {
-  MAX_DEPTH = 5
+  MAX_DEPTH = 6
   constructor(boundary, capacity, depth = 0){
     this.boundary = boundary
     this.capacity = capacity || 4
@@ -109,11 +117,10 @@ class QuadTree {
   }
   retrieve(range, found, inside = false){
     if(!found) found = []
-    
     if(this.boundary.intersect(range)){
       for(let p of this.points){
-        if(inside && range.contains(p)){
-          found.push(p)
+        if(inside){
+          if(range.contains(p)) found.push(p)
         } else found.push(p)
       }
       
@@ -125,7 +132,7 @@ class QuadTree {
     }
     return found
   }
-  query(range, found){
+  query(range, found = []){
     return this.retrieve(range, found, true)
   }
   near(x, y, width, height, ent){
