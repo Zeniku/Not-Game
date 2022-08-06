@@ -2,9 +2,9 @@ class Game {
   mouseX = Global.width/2
   mouseY = Global.height/2
   update(timestamp){
-    Global.updateEntities(timestamp)
+    if(!Global.paused) Global.updateEntities(timestamp)
     this.drawBoundary.setPos(this.mouseX, this.mouseY)
-    EntityCollisions.update()
+    if(!Global.paused) EntityCollisions.update()
   }
   draw(timestamp){
     let {width, height, ctx} = Global
@@ -14,7 +14,6 @@ class Game {
   }
   init(){
     let {width, height} = Global
-    Global.drawDebug = true
     Effects.load()
     let unit = new BaseUnit({
       hitSize: 10,

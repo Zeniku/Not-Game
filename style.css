@@ -22,24 +22,53 @@ html, body {
 }
 
 .box {
+  margin-left: 10px;
   background: #FFF9;
-  padding: 20px 20px 20px 30px;
+  padding: 15px 15px 15px 15px;
   border-radius: 5px;
   display: flex;
   align-items: center;
-  position: fixed;
   z-index: 10;
 }
 
-.box .slidercontainer {
-  height: 20px;
-  width: 200px; /* Width of the outside container */
+.box .buttonCon{
+  width: 25px;
+  height: 25px;
+  display: flex;
+  appearance: none;
+  background: #2E3369;
+  border-radius: 25px;
+  outline: none;
+  align-items: center;
+}
+
+.box .buttonCon button{
+  height: 100%;
+  width: 100%;
   z-index: 9;
+  -webkit-appearance: none;
+  outline: none;
+  background: #f2f2f2;
+  border-radius: 25px;
+  cursor: pointer;
+}
+
+#bigbox.box{
+  position: fixed;
+  padding: 10px 10px 10px 10px;
+}
+
+#box1.box{
+  margin-left: 0px;
+}
+
+.box .slidercontainer {
+  height: 25px;
+  width: 200px; /* Width of the outside container */
+  z-index: 10;
   display: flex;
   margin-right: 15px;
-  position: static;
   align-items: center;
-  /*-webkit-appearance: none;*/
 }
 
 .box .slidercontainer input{
@@ -48,16 +77,16 @@ html, body {
   z-index: 9;
   -webkit-appearance: none;
   outline: none;
-  background: linear-gradient(to right, #2E3369 0%, #2E3369 10%, #f2f2f2 10%, #f2f2f2 100%);
+  background: linear-gradient(to right, #2E3369 0%, #2E3369 5%, #f2f2f2 5%, #f2f2f2 100%);
   transition: background 450ms ease-in;
-  /*background: #f2f2f2;*/
   border-radius: 25px;
 }
-.box value {
-  font-size: 30px;
+
+.box .value {
+  font-size: 20px;
   font-weight: 600;
   font-family: sans-serif;
-  width: 55px;
+  width: 25px;
   text-align: center;
 }
 

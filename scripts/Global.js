@@ -5,10 +5,7 @@ window.Global = {
     for(let gObj of this.gObjIndex){
       this[gObj] = []
     }
-    this.sliderBox = document.querySelector(".box")
-    this.slider = this.sliderBox.querySelector(".slidercontainer").querySelector(".slider");
     
-    this.animationId = null
     this.container = document.querySelector(".game-container")
     this.canvas = this.container.querySelector(".game-canvas")
     this.ctx = this.canvas.getContext("2d")
@@ -16,8 +13,23 @@ window.Global = {
     this.width = this.canvas.width = window.innerWidth
     this.delta = this.time = 0
     this.fps = 1000/60
-    this.lastTimeStamp = null
-    this.drawDebug = this.disableEntDraw = false
+    this.lastTimeStamp = this.animationId = null
+    this.drawDebug = this.disableEntDraw = this.paused = false
+    
+    this.initB()
+  },
+  initB(){
+    this.bigBox = document.querySelector("#bigbox")
+    this.boxes = [
+      this.bigBox.querySelector("#box1"), 
+      this.bigBox.querySelector("#box2"), 
+      this.bigBox.querySelector("#box3"),
+    ]
+    
+    this.slider = this.boxes[0].querySelector(".slidercontainer").querySelector(".slider");
+    this.pauseB = this.boxes[1].querySelector(".buttonCon").querySelector(".button")
+    this.debugD = this.boxes[2].querySelector(".buttonCon").querySelector(".button")
+    
   },
   constraint({position, velocity}){
     let {width, height} = Global
@@ -96,8 +108,22 @@ window.Global = {
 }
 Global.init()
 Global.slider.oninput = function(){
-  Global.sliderBox.querySelector(".value").innerHTML = this.value
-  let percentage = this.value / 10 * 100
-  //slider color illusion 
-  Global.slider.style.background = `linear-gradient(to right, #2E3369 0%, #2E3369 ${percentage}%, #f2f2f2 ${percentage}%, #f2f2f2 100%)`
+  Global.boxes[0].querySelector(".value").innerHTML = this.value
+  let percentage = (this.value / this.max) * 100
+  //slider color illusion
+  Global.slider.style.background = `linear-gradient(to right, #2E3369 0%, #2E3369 ${percentage - 5}%, #f2f2f2 ${percentage - 5}%, #f2f2f2 100%)`
+}
+Global.pauseB.onclick = function(){
+  if(!Global.paused){
+    Global.paused = true
+  } else {
+    Global.paused = false
+  }
+}
+Global.debugD.onclick = function(){
+  if(!Global.drawDebug){
+    Global.drawDebug = true
+  } else {
+    Global.drawDebug = false
+  }
 }
