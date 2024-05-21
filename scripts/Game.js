@@ -4,7 +4,7 @@ class Game {
   update(timestamp){
     if(!Global.paused) Global.updateEntities(timestamp)
     this.drawBoundary.setPos(this.mouseX, this.mouseY)
-    if(!Global.paused) EntityCollisions.update()
+    if(!Global.paused) EntityCollisions.update(); EntityCollisions.simulateCol()
   }
   draw(timestamp){
     let {width, height, ctx} = Global
@@ -16,7 +16,7 @@ class Game {
     let {width, height} = Global
     Effects.load()
     let unit = new BaseUnit({
-      hitSize: 10,
+      hitSize: 15,
       health: 1000,
     })
 

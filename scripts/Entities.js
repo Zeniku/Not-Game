@@ -84,7 +84,6 @@ class Ent {
       let rad = this.type.hitSize + other.type.hitSize
       return this.distanceTo(other) <= rad * rad
     }
-    
     return false
   }
 }
@@ -118,7 +117,7 @@ class HpEnt extends Ent {
   }
   collision(other){
     if(other instanceof BulletEnt){
-      other.collision(this)
+      return other.collision(this)
     }
     if(other instanceof HpEnt){
       if(this.collides(other)){
@@ -135,7 +134,6 @@ class HpEnt extends Ent {
           oPos.y + (rSum) * uy
         )
         this.velocity.add(ux/2, uy/2)
-        other.velocity.add(-ux/2, -uy/2)
       }
     }
   }
@@ -202,6 +200,7 @@ class BulletEnt extends TimedEnt {
         other.loseHealth(this.damage)
         if(!this.peirced.includes(other)) this.peirced.push(other)
         if(!this.type.peirces && !other.isImmune) this.remove()
+        return true
       }
     }
   }
