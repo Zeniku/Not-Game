@@ -8,7 +8,9 @@ class EntityCollisions{
       let other = qtreeE.retrieve(i.hitbox)
       for(let p of other){
         let o = p.Pdata
-        if(o != i) o.collision(i)
+        if(o != i){
+          o.collision(i)
+        }
       }
       for(let p of bullets){
         p.Pdata.collision(i)

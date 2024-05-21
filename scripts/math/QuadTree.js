@@ -83,7 +83,7 @@ class Rect {
   }
 }
 class QuadTree {
-  MAX_DEPTH = 6
+  MAX_DEPTH = 5
   constructor(boundary, capacity, depth = 0){
     this.boundary = boundary
     this.capacity = capacity || 4
@@ -92,44 +92,52 @@ class QuadTree {
     this.depth = depth
   }
   insert(point){
-    if(this.boundary.contains(point)){
-      if(
-        this.points.length < this.capacity ||
-        this.depth >= this.MAX_DEPTH
-      ){
-        this.points.push(point)
-        return true
-      } else {
-        if(!this.divided()) this.subdivide();
-        
-        for(let i of this.quadrants){
-          if(i.insert(point)) return true
-        }
+    if(!this.boundary.contains(point)) return false
+    
+    if(!(this.points != undefined &&
+      this.points.length < this.capacity ||
+      this.depth >= this.MAX_DEPTH)
+    ){
+      if(!this.divided()) this.subdivide();
+      
+      for(let i of this.quadrants){
+        if(i.insert(point)) return true
       }
     }
-    return false
+    
+    this.points.push(point)
+    return true
   }
   subdivide(){
     let q = ["nw", "ne", "sw", "se"]
+    
     for(let i in q){
       this.quadrants[i] = new QuadTree(this.boundary.subdivide(q[i]), this.capacity, this.depth + 1)
     }
+    
+    for(let i of this.points){
+      this.quadrants[0].insert(i)
+      this.quadrants[1].insert(i)
+      this.quadrants[2].insert(i)
+      this.quadrants[3].insert(i)
+    }
+    this.points = undefined
   }
   retrieve(range, found, inside = false){
     if(!found) found = []
-    if(this.boundary.intersect(range)){
-      for(let p of this.points){
-        if(inside){
-          if(range.contains(p)) found.push(p)
-        } else found.push(p)
-      }
-      
-      if(this.divided()){
-        for(let i of this.quadrants){
-          i.retrieve(range, found, inside)
-        }
+    if(!this.boundary.intersect(range)) return found
+    if(this.divided()){
+      for(let i of this.quadrants){
+        i.retrieve(range, found, inside)
       }
     }
+    
+    if(this.points == undefined) return found
+      for(let p of this.points){
+        if(inside){
+        if(range.contains(p)) found.push(p)
+        } else found.push(p)
+      }
     return found
   }
   query(range, found = []){
