@@ -134,8 +134,8 @@ class HpEnt extends Ent {
           oPos.x + (rSum) * ux,
           oPos.y + (rSum) * uy
         )
-        this.velocity.add(ux/4, uy/4)
-        other.velocity.add(-ux/4, -uy/4)
+        this.velocity.add(ux/2, uy/2)
+        other.velocity.add(-ux/2, -uy/2)
       }
     }
   }
