@@ -1,44 +1,32 @@
-/*class Slider{
+class Slider{
   constructor({
     parent = document.querySelector(".box"),
     min = 1,
     max = 10
   } = {}){
     this.parent = parent
-    
-    this.sliderContainer = document.createElement("div")
-    this.sliderContainer.className = "he"
-    
-    let sliderConf = {
-      type: "range",
-      min: min,
-      max: max,
-      value: min,
-    }
-    let sliderStyle = {
-      height: "15px",
-      width: "100%",
-      "z-index": 9,
-      "-webkit-appearance": "none",
-      outline: "none",
-      background: "linear-gradient(to right, #2E3369 0%, #2E3369 10%, #f2f2f2 10%, #f2f2f2 100%)",
-      transition: "background 450ms ease-in",
-      "border-radius": "25px",
-    }
-    
+    this.box = new Box({parent: parent}).box
+    this.sliderContainer = new Box({parent: this.box}).box
+    this.sliderContainer.className = "slidercontainer"
     this.slider = document.createElement("input");
-    for(let i in sliderConf){
-      this.slider[i] = sliderConf[i]
-    }
-    for(let i in sliderStyle){
-      this.slider.style[i] = sliderStyle[i]
-    }
+    this.slider.className = "slider"
     
-    this.parent.appendChild(this.sliderContainer)
+    this.slider.min = this.slider.value = this.value = this.min = min
+    this.slider.max = this.max = max
+    this.slider.type = "range"
+    this.slider.step = "1"
+    
+    this.parent.appendChild(this.box)
+    this.box.appendChild(this.sliderContainer)
     this.sliderContainer.appendChild(this.slider);
-    console.log(parent)
-    console.log(this.slider)
+    this.slider.oninput = () => {
+      this.oninput()
+    }
+  }
+  oninput(){
+    this.value = parseInt(this.slider.value)
+    
+    let percentage = (this.value / this.max) * 100
+    this.slider.style.background = `linear-gradient(to right, #2E3369 0%, #2E3369 ${percentage - 5}%, #f2f2f2 ${percentage - 5}%, #f2f2f2 100%)`
   }
 }
-let hmm = new Slider()
-console.log(Global.slider)*/

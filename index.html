@@ -15,35 +15,20 @@
   <div class="game-container">
     <canvas class="game-canvas"></canvas>
   </div>
-  <div class="box" id="bigbox">
-    <div class=box id="box1">
-      <div class="slidercontainer" id="slideCon">
-        <input type="range" min="1" max="10" value="1" step="1" class="slider">
-      </div>
-      <div class="value">1</div>
-    </div>
-    
-    <div class=box id="box2">
-      <div class="buttonCon" id="pauseCon">
-        <button type="button" class="button"></button>
-      </div>
-    </div>
-    <div class=box id="box3">
-      <div class="buttonCon" id="debugDCon">
-        <button type="button" class="button"></button>
-      </div>
-    </div>
-  </div>
+  <div class="box" id="bigbox"></div>
 
   <!-- Project -->
+
   <script src="./scripts/Global.js"></script>
+  <script src="./scripts/ui/Box.js"></script>
+  <script src="./scripts/ui/Button.js"></script>
+  <script src="./scripts/ui/Slider.js"></script>
   <script src="./scripts/Draw.js"></script>
   <script src="./scripts/math/QuadTree.js"></script>
   <script src="./scripts/math/Vec.js"></script>
   <script src="./scripts/math/Rand.js"></script>
   <script src="./scripts/math/Mathf.js"></script>
   <script src="./scripts/math/Angles.js"></script>
-  <script src="./scripts/ui/Slider.js"></script>
   <script src="./scripts/Entities.js"></script>
   <script src="./scripts/EntityCollisions.js"></script>
   <script src="./scripts/Types.js"></script>

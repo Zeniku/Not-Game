@@ -1,6 +1,12 @@
 class Draw {
+  static pcircle(x, y, radius, ctx = Global.ctx){
+    ctx.moveTo(Math.floor(x), Math.floor(y))
+    ctx.arc(Math.floor(x), Math.floor(y), Math.floor(radius), 0, Math.PI * 2)
+    
+  }
   static circle(x, y, radius, ctx = Global.ctx){
     ctx.beginPath()
+    //ctx.moveTo(Math.floor(x), Math.floor(y))
     ctx.arc(Math.floor(x), Math.floor(y), Math.floor(radius), 0, Math.PI * 2)
     ctx.fill()
   }

@@ -2,9 +2,9 @@ window.Global = {
   init(){
     this.qIndex = ["qtreeE", "qtreeB", "qtreeFx"]
     this.gObjIndex = ["entities", "bullets", "effects"]
-    for(let gObj of this.gObjIndex){
-      this[gObj] = []
-    }
+    this.entities = []
+    this.bullets = []
+    this.effects = []
     
     this.container = document.querySelector(".game-container")
     this.canvas = this.container.querySelector(".game-canvas")
@@ -20,15 +20,15 @@ window.Global = {
   },
   initB(){
     this.bigBox = document.querySelector("#bigbox")
-    this.boxes = [
-      this.bigBox.querySelector("#box1"), 
-      this.bigBox.querySelector("#box2"), 
-      this.bigBox.querySelector("#box3"),
-    ]
     
-    this.slider = this.boxes[0].querySelector(".slidercontainer").querySelector(".slider");
-    this.pauseB = this.boxes[1].querySelector(".buttonCon").querySelector(".button")
-    this.debugD = this.boxes[2].querySelector(".buttonCon").querySelector(".button")
+    this.slider = new Slider()
+  
+    this.pauseB = new Button({
+      parent: this.bigBox
+    })
+    this.debugD = new Button({
+      parent: this.bigBox
+    })
     
   },
   constraint({position, velocity}){
@@ -50,80 +50,59 @@ window.Global = {
   },
   filterEnt(array){
     let filtered = array.filter(e => e != null && !e.removed)
-    if(filtered.length != array.length) return filtered
-    return array
+    if(filtered.length == array.length) return array
+    filtered.forEach((p, i) => {
+      p.index = i
+    })
+    return filtered
   },
   filterEntities(){
-    for(let gObj of this.gObjIndex){
-      this[gObj] = this.filterEnt(this[gObj])
-    }
+    this.entities = this.filterEnt(this.entities)
+    this.bullets = this.filterEnt(this.bullets)
+    this.effects = this.filterEnt(this.effects)
   },
-  entArrUp(array, addon = ent => {}, condition){
-    this.updateEntArr(array, e => {
+  entArrUp(array, addon = ent => {}){
+    array.forEach((e, i) => {
       addon(e)
       e.update(this.time)
-    }, condition)
-  },
-  entArrDraw(array, addon = ent => {}, condition){
-    this.updateEntArr(array, e => {
-      addon(e)
-      e.draw(this.ctx)
-    }, condition)
-  },
-  updateEntArr(array, do_ = ent => {}, condition = ent => true, doElse = ent => {}){
-    for(let i of array){
-      let ent = (i.Pdata != null)? i.Pdata : i
-      if(condition(ent)) do_(ent)
-    }
+      this.constraint(e)
+    })
   },
   updateQuads(){
-    for(let q in this.qIndex){
-      this[this.qIndex[q]].update(this[this.gObjIndex[q]])
+    this.qtreeE.update(this.entities)
+    this.qtreeB.update(this.bullets)
+    this.qtreeFx.update(this.effects)
+  },
+  drawDebugEnt(array){
+    for(let e of array){
+      this.ctx.fillStyle = "#FFFFFF"
+      Draw.circle(e.position.x, e.position.y, 2)
+      if(e.hitbox) e.hitbox.show()
+    }
+  },
+  drawInsideScreen(quadtree, array, boundary){
+    let query = quadtree.query(boundary)
+    for(let i of query){
+      array[i.index].draw(this.ctx)
     }
   },
   drawEntities(boundary){
-    if(this.drawDebug){ 
+    if(this.drawDebug){
       this.qtreeE.draw()
        
-      for(let q of this.gObjIndex){
-        this.updateEntArr(this[q], e => {
-          this.ctx.fillStyle = "#FFFFFF"
-          Draw.circle(e.position.x, e.position.y, 2)
-          if(e.hitbox) e.hitbox.show()
-        })
-      }
+      this.drawDebugEnt(this.entities)
+      this.drawDebugEnt(this.bullets)
+      this.drawDebugEnt(this.effects)
     }
-    for(let q of this.qIndex){
-      if(!this.disableEntDraw) this.entArrDraw(this[q].query(boundary))
-    }
+      if(this.disableEntDraw) return 
+      this.drawInsideScreen(this.qtreeE, this.entities, boundary)
+      this.drawInsideScreen(this.qtreeB, this.bullets, boundary)
+      this.drawInsideScreen(this.qtreeFx, this.effects, boundary)
   },
   updateEntities(timestamp){
     this.entArrUp(this.entities, i => this.constraint(i))
     this.entArrUp(this.bullets, i => this.constraint(i))
     this.entArrUp(this.effects)
-    
-    this.filterEntities()
-    this.updateQuads()
   }
 }
-Global.init()
-Global.slider.oninput = function(){
-  Global.boxes[0].querySelector(".value").innerHTML = this.value
-  let percentage = (this.value / this.max) * 100
-  //slider color illusion
-  Global.slider.style.background = `linear-gradient(to right, #2E3369 0%, #2E3369 ${percentage - 5}%, #f2f2f2 ${percentage - 5}%, #f2f2f2 100%)`
-}
-Global.pauseB.onclick = function(){
-  if(!Global.paused){
-    Global.paused = true
-  } else {
-    Global.paused = false
-  }
-}
-Global.debugD.onclick = function(){
-  if(!Global.drawDebug){
-    Global.drawDebug = true
-  } else {
-    Global.drawDebug = false
-  }
-}
+

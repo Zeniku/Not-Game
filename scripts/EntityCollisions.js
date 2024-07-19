@@ -11,6 +11,7 @@ class CollData{
     this.i.collision(this.o)
   }
 }
+let h = 3
 class EntityCollisions{
   static collisions = []
   
@@ -22,25 +23,21 @@ class EntityCollisions{
       let bullets = qtreeB.retrieve(i.hitbox)
       let other = qtreeE.retrieve(i.hitbox)
       for(let p of other){
-        let o = p.Pdata
-        if(o != i){
-          let collided = new CollData(o, i)
-          this.collisions.push(collided)
-        }
+        let ent = Global.entities[p.index]
+        if(ent.collides(i)) this.collisions.push(new CollData(ent, i))
       }
       for(let p of bullets){
-          let collided = new CollData(p.Pdata, i)
-          this.collisions.push(collided)
+        let ent = Global.bullets[p.index]
+        if(ent.collides(i)) this.collisions.push(new CollData(ent, i))
       }
     }
   }
   static simulateCol(){
-    let filtered = this.collisions.filter((v,i,a) => {
-      if(a[i+1] == undefined) return true;
-      return !v.sameAs(a[i+1])
+    let filtered = this.collisions.filter((val,i,arr) => {
+      if(arr[i+1] == undefined) return true;
+      return !val.sameAs(arr[i+1])
     })
-    this.collisions = filtered
-    for(let i of this.collisions){
+    for(let i of filtered){
       i.collide()
     }
     this.collisions = []

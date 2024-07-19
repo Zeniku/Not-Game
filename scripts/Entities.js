@@ -28,8 +28,8 @@ class Ent {
     return ent
   }
   entrr(){
+    this.id = this.index = Global.entities.length
     Global.entities.push(this)
-    this.id = Global.entities.length - 1
   }
   init(){
     this.type.init(this)
@@ -67,6 +67,7 @@ class Ent {
     return this
   }
   remove() {
+    //if(this instanceof HpEnt) Global.entities.forEach(e => console.log(e.id))
     this.removed = true
   }
   angleTo(p2) {
@@ -82,7 +83,7 @@ class Ent {
   collides(other){
     if(other instanceof Ent){
       let rad = this.type.hitSize + other.type.hitSize
-      return this.distanceTo(other) <= rad * rad
+      return (this.distanceTo(other) <= rad * rad)
     }
     return false
   }
@@ -133,6 +134,7 @@ class HpEnt extends Ent {
           oPos.x + (rSum) * ux,
           oPos.y + (rSum) * uy
         )
+        
         this.velocity.add(ux/2, uy/2)
       }
     }
@@ -149,7 +151,7 @@ class HpEnt extends Ent {
 class TimedEnt extends Ent {
   constructor(config) {
     super(config)
-    this.lifetime = this.type.lifetime || config.lifetime
+    this.lifetime = this.type.lifetime || config.lifetime || 0
     this.time = 0;
   }
   update(timestamp) {
@@ -184,24 +186,22 @@ class BulletEnt extends TimedEnt {
     super.update(timestamp)
   }
   entrr(){
+    this.id = this.index = Global.bullets.length
     Global.bullets.push(this)
-    this.id = Global.bullets.length - 1
   }
   collision(other){
-    if(this.collides(other) && other.team != this.team){
-      if(other instanceof HpEnt){
-        //e.highlight = true
-        if(!other.isImmune){
-          this.type.hitEffect.createEnt({
-            x: this.position.x,
-            y: this.position.y
-          })
-        }
-        other.loseHealth(this.damage)
-        if(!this.peirced.includes(other)) this.peirced.push(other)
-        if(!this.type.peirces && !other.isImmune) this.remove()
-        return true
+    if(!(this.collides(other) && other.team != this.team)) return 
+    if(other instanceof HpEnt){
+      //e.highlight = true
+      if(!other.isImmune){
+        this.type.hitEffect.createEnt({
+          x: this.position.x,
+          y: this.position.y
+        })
       }
+      other.loseHealth(this.damage)
+      if(!this.peirced.includes(other)) this.peirced.push(other)
+      if(!this.type.peirces && !other.isImmune) this.remove()
     }
   }
 }
@@ -217,8 +217,8 @@ class FxEnt extends TimedEnt {
     Angles.randLenVector(this.id, amount, length, draw)
   }
   entrr(){
+    this.id = this.index = Global.effects.length
     Global.effects.push(this)
-    this.id = Global.effects.length - 1
   }
 }
 

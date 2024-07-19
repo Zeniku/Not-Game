@@ -18,7 +18,8 @@ class BaseType {
   }
   draw(ent, con) {
     //con.fillStyle = ent.color || this.color
-    Draw.circle(ent.position.x, ent.position.y, this.hitSize)
+      Draw.circle(ent.position.x, ent.position.y, this.hitSize)
+      //Draw.line(ent.position.x, ent.position.y, ent.lastX, ent.lastY)
   }
   createEnt(config = {}) {
     return this.EntType.create(Object.assign({
@@ -54,7 +55,7 @@ class Bullet extends BaseType{
     damage = 3,
     peirceNum = 0,
     peirces = (peirceNum > 0),
-    hitEffect = new Effect(0,() => {})
+    hitEffect = Effects.none
   } = {}){
     super(...arguments)
     this.EntType = EntType

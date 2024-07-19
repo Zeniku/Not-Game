@@ -1,8 +1,8 @@
 class Point {
-  constructor(x, y, data){
+  constructor(x, y, index){
     this.x = x
     this.y = y
-    this.Pdata = data
+    this.index = index
   }
 }
 class Rect {
@@ -83,7 +83,7 @@ class Rect {
   }
 }
 class QuadTree {
-  MAX_DEPTH = 5
+  MAX_DEPTH = 6
   constructor(boundary, capacity, depth = 0){
     this.boundary = boundary
     this.capacity = capacity || 4
@@ -178,7 +178,7 @@ class QuadTree {
   update(entities){
     this.clear()
     for(let e of entities){
-      let p = new Point(e.position.x, e.position.y, e)
+      let p = new Point(e.position.x, e.position.y, e.index)
       this.insert(p)
     }
   }
