@@ -1,11 +1,14 @@
-class Box{
+class Box {
   constructor({
-    parent,
-  } = {}){
-    this.parent = parent 
-    this.box = document.createElement("div")
-    this.box.type = "box"
-    this.box.className = "box"
-    if (parent != null && parent != undefined) this.parent.appendChild(this.box)
+    parent = null,
+    className = "box",
+    style = {}
+  } = {}) {
+    this.el = document.createElement("div");
+    this.el.className = className;
+
+    Object.assign(this.el.style, style);
+
+    if(parent) parent.appendChild(this.el);
   }
 }

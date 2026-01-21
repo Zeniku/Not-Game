@@ -1,21 +1,20 @@
 class Point {
-  constructor(x, y, index){
+  constructor(x, y, index) {
     this.x = x
     this.y = y
     this.index = index
   }
 }
+
+/* ===================== RECT ===================== */
+
 class Rect {
-  constructor(x, y, width, height){
+  constructor(x, y, width, height) {
     this.x = x
-    this.y = y 
+    this.y = y
     this.width = width
     this.height = height
-    this.color = "#FFFFFF"
     this.setDirections()
-  }
-  setRect(x, y, width, height){
-    return this.setPos(x,y).setSize(width, height)
   }
   setPos(x, y){
     this.x = x
@@ -23,164 +22,179 @@ class Rect {
     this.setDirections()
     return this
   }
-  setSize(width, height){
+  setRect(x, y, width, height) {
+    this.x = x
+    this.y = y
     this.width = width
-    this.height = height 
+    this.height = height
     this.setDirections()
     return this
   }
-  setDirections(){
-    this.left = this.x - (this.width/2)
-    this.right = this.x + (this.width/2)
-    this.top = this.y - (this.height/2)
-    this.bottom = this.y + (this.height/2)
-  }
-  subdivide(quadrant){
-    let left = this.x - this.width / 4,
-      right = this.x + this.width / 4,
-      top = this.y - this.height / 4,
-      bottom = this.y + this.height / 4;
-    let comb = {
-      ne: [right, top],
-      nw: [left, top],
-      se: [right, bottom],
-      sw: [left, bottom]
-    }
 
-    for(let i in comb){
-      if(comb[quadrant] == comb[i]) {
-        return new Rect(
-          comb[i][0], 
-          comb[i][1], 
-          this.width/2,
-          this.height/2)
-      }
-    }
+  setDirections() {
+    const hw = this.width * 0.5
+    const hh = this.height * 0.5
+    this.left = this.x - hw
+    this.right = this.x + hw
+    this.top = this.y - hh
+    this.bottom = this.y + hh
   }
-  containsXY(x, y){
+
+  containsXY(x, y) {
     return (
-      x > this.left && x < this.right &&
-      y > this.top && y < this.bottom
+      x >= this.left &&
+      x <= this.right &&
+      y >= this.top &&
+      y <= this.bottom
     )
   }
-  contains(point){
-    if(point instanceof Point){
-      return this.containsXY(point.x, point.y)
+
+  contains(p) {
+    return this.containsXY(p.x, p.y)
+  }
+
+  intersect(r) {
+    return !(
+      r.left > this.right ||
+      r.right < this.left ||
+      r.top > this.bottom ||
+      r.bottom < this.top
+    )
+  }
+
+  subdivide(dir) {
+    const hw = this.width * 0.25
+    const hh = this.height * 0.25
+    const w = this.width * 0.5
+    const h = this.height * 0.5
+
+    switch (dir) {
+      case 0: return new Rect(this.x - hw, this.y - hh, w, h) // NW
+      case 1: return new Rect(this.x + hw, this.y - hh, w, h) // NE
+      case 2: return new Rect(this.x - hw, this.y + hh, w, h) // SW
+      case 3: return new Rect(this.x + hw, this.y + hh, w, h) // SE
     }
   }
-  intersect(range){
-    if(range instanceof Rect){
-      let {left, right, top, bottom} = range
-      return !(
-        left > this.right || right < this.left ||
-        top > this.bottom || bottom < this.top
-      )
-    }
-  }
-  show(con = Global.ctx){
+
+  show(con = Global.ctx) {
     con.strokeStyle = "#FFFFFF"
     Draw.lineRect(this.x, this.y, this.width, this.height, true)
   }
 }
+
+/* ===================== QUADTREE ===================== */
+
 class QuadTree {
-  MAX_DEPTH = 6
-  constructor(boundary, capacity, depth = 0){
+  static MAX_DEPTH = 6
+
+  constructor(boundary, capacity = 4, depth = 0) {
     this.boundary = boundary
-    this.capacity = capacity || 4
-    this.points = []
-    this.quadrants = []
+    this.capacity = capacity
     this.depth = depth
+    this.points = []
+    this.quadrants = null
   }
-  insert(point){
-    if(!this.boundary.contains(point)) return false
-    
-    if(!(this.points != undefined &&
-      this.points.length < this.capacity ||
-      this.depth >= this.MAX_DEPTH)
-    ){
-      if(!this.divided()) this.subdivide();
-      
-      for(let i of this.quadrants){
-        if(i.insert(point)) return true
+
+  divided() {
+    return this.quadrants !== null
+  }
+
+  insert(point) {
+    if (!this.boundary.contains(point)) return false
+
+    if (this.points.length < this.capacity || this.depth >= QuadTree.MAX_DEPTH) {
+      this.points.push(point)
+      return true
+    }
+
+    if (!this.divided()) this.subdivide()
+
+    for (let q of this.quadrants) {
+      if (q.insert(point)) return true
+    }
+
+    return false
+  }
+
+  subdivide() {
+    this.quadrants = new Array(4)
+    for (let i = 0; i < 4; i++) {
+      this.quadrants[i] = new QuadTree(
+        this.boundary.subdivide(i),
+        this.capacity,
+        this.depth + 1
+      )
+    }
+
+    // Move points into children
+    for (let p of this.points) {
+      for (let q of this.quadrants) {
+        if (q.insert(p)) break
       }
     }
-    
-    this.points.push(point)
-    return true
+
+    this.points.length = 0
   }
-  subdivide(){
-    let q = ["nw", "ne", "sw", "se"]
+
+  retrieve(range, found = [], show = false) {
+    if (!this.boundary.intersect(range)) return found
     
-    for(let i in q){
-      this.quadrants[i] = new QuadTree(this.boundary.subdivide(q[i]), this.capacity, this.depth + 1)
+    //this.boundary.show()
+    for (let p of this.points) {
+      if (range.contains(p)) found.push(p)
     }
-    
-    for(let i of this.points){
-      this.quadrants[0].insert(i)
-      this.quadrants[1].insert(i)
-      this.quadrants[2].insert(i)
-      this.quadrants[3].insert(i)
-    }
-    this.points = undefined
-  }
-  retrieve(range, found, inside = false){
-    if(!found) found = []
-    if(!this.boundary.intersect(range)) return found
-    if(this.divided()){
-      for(let i of this.quadrants){
-        i.retrieve(range, found, inside)
+
+    if (this.divided()) {
+      for (let q of this.quadrants) {
+        q.retrieve(range, found)
       }
     }
-    
-    if(this.points == undefined) return found
-      for(let p of this.points){
-        if(inside){
-        if(range.contains(p)) found.push(p)
-        } else found.push(p)
-      }
+
     return found
   }
-  query(range, found = []){
-    return this.retrieve(range, found, true)
+
+  query(range) {
+    return this.retrieve(range, [])
   }
-  near(x, y, width, height, ent){
-    let near = this.query(new Rect(x, y, width, height))
-    for(let i of near){
-      ent(i.data)
-    }
+
+  near(x, y, w, h, callback) {
+    this._rect ||= new Rect(0, 0, 0, 0)
+    this._rect.setRect(x, y, w, h)
+
+    const result = this.query(this._rect)
+    for (let p of result) callback(p.data)
   }
-  circleNear(x, y, radius, ent){
-    this.near(x, y, radius, radius, e => {
-      let pos = e.position
-      if(Mathf.dst2(x, y, pos.x, pos.y) < radius*radius) ent(e)
+
+  circleNear(x, y, r, callback) {
+    const r2 = r * r
+    this.near(x, y, r * 2, r * 2, e => {
+      const dx = e.position.x - x
+      const dy = e.position.y - y
+      if (dx * dx + dy * dy <= r2) callback(e)
     })
   }
-  divided(){
-    return this.quadrants.length > 0
-  }
-  draw(con){
+
+  draw(con) {
     this.boundary.show(con)
-    if(this.divided()){
-      for (let i of this.quadrants) {
-        i.draw(con)
-      }
+    if (this.divided()) {
+      for (let q of this.quadrants) q.draw(con)
     }
   }
-  clear(){
-    this.points = []
-    if(this.divided()){
-      for(let i of this.quadrants){
-        i.clear()
-      }
+
+  clear() {
+    this.points.length = 0
+    if (this.divided()) {
+      for (let q of this.quadrants) q.clear()
     }
-    this.quadrants = []
+    this.quadrants = null
   }
-  update(entities){
+
+  update(entities) {
     this.clear()
-    for(let e of entities){
-      let p = new Point(e.position.x, e.position.y, e.index)
-      this.insert(p)
+    for (let e of entities) {
+      this.insert(new Point(e.position.x, e.position.y, e.index))
     }
   }
 }
-console.log("QuadTree")
+
+console.log("Optimized QuadTree")

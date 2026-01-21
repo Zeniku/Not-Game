@@ -9,37 +9,54 @@ class CollData{
   collide(){
     this.o.collision(this.i)
     this.i.collision(this.o)
+    
   }
 }
-let h = 3
-class EntityCollisions{
+
+class EntityCollisions {
   static collisions = []
-  
-  static update(){
-    let qtreeE = Global.qtreeE,
-      qtreeB = Global.qtreeB
-    
-    for(let i of Global.entities){
-      let bullets = qtreeB.retrieve(i.hitbox)
-      let other = qtreeE.retrieve(i.hitbox)
-      for(let p of other){
-        let ent = Global.entities[p.index]
-        if(ent.collides(i)) this.collisions.push(new CollData(ent, i))
+  static _rect = new Rect(0, 0, 0, 0)
+
+  static update() {
+    this.collisions.length = 0
+
+    for (let i of Global.entities) {
+      const r = i.maxRadius * 2
+
+      this._rect.setRect(
+        i.position.x,
+        i.position.y,
+        r * 2,
+        r * 2
+      )
+      this._rect.show()
+
+      // ENTITY vs ENTITY
+      const nearbyE = Global.qtreeE.query(this._rect)
+      for (let p of nearbyE) {
+        const ent = Global.entities[p.index]
+        if (ent === i) continue
+        if (ent.index < i.index && ent.collides(i)) {
+          //PhysicsHandler.ballToBall(ent, i)
+          this.collisions.push(new CollData(ent, i))
+        }
       }
-      for(let p of bullets){
-        let ent = Global.bullets[p.index]
-        if(ent.collides(i)) this.collisions.push(new CollData(ent, i))
+
+      // ENTITY vs BULLET
+      const nearbyB = Global.qtreeB.query(this._rect)
+      for (let p of nearbyB) {
+        const bullet = Global.bullets[p.index]
+        if (bullet.collides(i)) {
+          this.collisions.push(new CollData(bullet, i))
+        }
       }
     }
   }
-  static simulateCol(){
-    let filtered = this.collisions.filter((val,i,arr) => {
-      if(arr[i+1] == undefined) return true;
-      return !val.sameAs(arr[i+1])
-    })
-    for(let i of filtered){
-      i.collide()
+
+  static simulateCol() {
+    for (let c of this.collisions) {
+      c.collide()
+      
     }
-    this.collisions = []
   }
 }

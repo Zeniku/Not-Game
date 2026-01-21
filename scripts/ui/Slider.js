@@ -1,32 +1,52 @@
-class Slider{
+class Slider {
   constructor({
-    parent = document.querySelector(".box"),
-    min = 1,
-    max = 10
-  } = {}){
-    this.parent = parent
-    this.box = new Box({parent: parent}).box
-    this.sliderContainer = new Box({parent: this.box}).box
-    this.sliderContainer.className = "slidercontainer"
-    this.slider = document.createElement("input");
-    this.slider.className = "slider"
-    
-    this.slider.min = this.slider.value = this.value = this.min = min
-    this.slider.max = this.max = max
-    this.slider.type = "range"
-    this.slider.step = "1"
-    
-    this.parent.appendChild(this.box)
-    this.box.appendChild(this.sliderContainer)
-    this.sliderContainer.appendChild(this.slider);
-    this.slider.oninput = () => {
-      this.oninput()
+    parent,
+    min = 0,
+    max = 1,
+    step = 0.01,
+    value = 1,
+    label = "",
+    labelPosition = "side", // "top" or "side"
+    onInput = () => {}
+  } = {}) {
+
+    this.box = new Box({ parent }).el;
+    this.value = 0
+    this.container = document.createElement("div");
+    this.container.style.display = "flex";
+    this.container.style.gap = "0.5em";
+
+    if (labelPosition === "top") {
+      this.container.style.flexDirection = "column";
+    } else {
+      this.container.style.flexDirection = "row";
+      this.container.style.alignItems = "center";
     }
-  }
-  oninput(){
-    this.value = parseInt(this.slider.value)
-    
-    let percentage = (this.value / this.max) * 100
-    this.slider.style.background = `linear-gradient(to right, #2E3369 0%, #2E3369 ${percentage - 5}%, #f2f2f2 ${percentage - 5}%, #f2f2f2 100%)`
+
+    if (label) {
+      this.label = document.createElement("div");
+      this.label.textContent = label;
+      this.label.style.whiteSpace = "nowrap";
+      this.container.appendChild(this.label);
+    }
+
+    this.input = document.createElement("input");
+    this.input.type = "range";
+    this.input.min = min;
+    this.input.max = max;
+    this.input.step = step;
+    this.input.value = value;
+
+    // 🔑 IMPORTANT FIX
+    this.input.style.flex = "1";
+    this.input.style.minWidth = "0";
+
+    this.container.appendChild(this.input);
+    this.box.appendChild(this.container);
+
+    this.input.oninput = () => {
+      onInput(parseFloat(this.input.value))
+      this.value = this.input.value
+    }
   }
 }

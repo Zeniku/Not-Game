@@ -16,6 +16,9 @@ class Ent {
     this.lastX = x
     this.lastY = y
     this.hitbox = new Rect(x, y, this.type.hitSize * 2, this.type.hitSize * 2)
+    this.maxRadius = Math.sqrt(
+      (this.type.hitSize) ** 2 + (this.type.hitSize) ** 2
+    )
     this.removed = false
     this.team = team
     this.rotation = rotation 
@@ -44,6 +47,7 @@ class Ent {
     pos.add(vel.x * Global.delta, vel.y * Global.delta)
     if(this.hitbox) this.hitbox.setPos(pos.x, pos.y)
     this.type.update(this, timestamp)
+    
   }
   rot() {
     return this.velocity.getAngle()
@@ -116,28 +120,9 @@ class HpEnt extends Ent {
     //this.collisions()
     super.update(timestamp)
   }
-  collision(other){
-    if(other instanceof BulletEnt){
-      return other.collision(this)
-    }
-    if(other instanceof HpEnt){
-      if(this.collides(other)){
-        let pos = this.position,
-        oPos = other.position
-        
-        let dx = pos.x - oPos.x, dy = pos.y - oPos.y,
-        rSum = this.type.hitSize + other.type.hitSize,
-        len = Math.sqrt(this.distanceTo(other)) || 1,
-        ux = dx / len, uy = dy / len
-        
-        pos.setPos(
-          oPos.x + (rSum) * ux,
-          oPos.y + (rSum) * uy
-        )
-        
-        this.velocity.add(ux/2, uy/2)
-      }
-    }
+  collision(other) {
+    if(!(other instanceof HpEnt)) return
+    PhysicsHandler.ballToBall(this, other)
   }
   loseHealth(amount){
     if(!this.isImmune){
