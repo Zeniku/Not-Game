@@ -18,6 +18,8 @@ class BaseType {
   }
   draw(ent, con) {
     //con.fillStyle = ent.color || this.color
+    Draw.colorHex(ent.color || this.color);
+    Draw.rect
       Draw.circle(ent.position.x, ent.position.y, this.hitSize)
       //Draw.line(ent.position.x, ent.position.y, ent.lastX, ent.lastY)
   }
@@ -40,9 +42,11 @@ class BaseUnit extends BaseType{
   constructor({
     EntType = HpEnt,
     health = 200,
+    deathEffect = Effects.none
   } = {}) {
     super(...arguments)
     this.EntType = EntType
+    this.deathEffect = deathEffect
     this.health = health
     this.weapons = []
   }
@@ -66,7 +70,8 @@ class Bullet extends BaseType{
     this.hitEffect = hitEffect
   }
   draw(ent, con){
-    con.fillStyle = ent.color || this.color
+    //con.fillStyle = ent.color || this.color
+    Draw.colorHex(ent.color || this.color);
     Draw.circle(ent.position.x, ent.position.y, Math.max(this.hitSize * ent.fout(), 1))
   }
 }

@@ -8,7 +8,8 @@ window.Global = {
     
     this.container = document.querySelector(".game-container")
     this.canvas = this.container.querySelector(".game-canvas")
-    this.ctx = this.canvas.getContext("2d")
+    this.gl = this.canvas.getContext("webgl");
+    //this.ctx = this.canvas.getContext("2d")
     
     this.height = this.canvas.height = window.innerHeight 
     this.width = this.canvas.width = window.innerWidth
@@ -31,8 +32,13 @@ window.Global = {
     })
     this.bigBox.addButton("Debug", e => {
         this.drawDebug = e
+        this.disableEntDraw = e
     })
-    
+    this.bigBox.addButton("Step", e => {
+      this.paused = false
+      game.update(this.delta)
+      this.paused = true
+    })
   },
   
 }

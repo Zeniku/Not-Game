@@ -3,60 +3,73 @@ class CollData{
     this.o = o
     this.i = i
   }
-  sameAs(other){
-    return (this.o == other.o && this.i == other.i)
-  }
   collide(){
     this.o.collision(this.i)
     this.i.collision(this.o)
-    
   }
 }
 
 class EntityCollisions {
-  static collisions = []
-  static _rect = new Rect(0, 0, 0, 0)
+  static collisions = [];
 
   static update() {
-    this.collisions.length = 0
+    this.collisions = [];
+    const { entities, qtreeE , qtreeB, bullets} = Global;
 
-    for (let i of Global.entities) {
-      const r = i.maxRadius * 2
+    // Use a shared rect to avoid garbage collection lag
+    this._searchRect ||= new Rect(0, 0, 0, 0);
 
-      this._rect.setRect(
-        i.position.x,
-        i.position.y,
-        r * 2,
-        r * 2
-      )
-      this._rect.show()
+    for (let i = 0; i < entities.length; i++) {
+        const entA = entities[i];
+        
+        // CRITICAL: Expand the search area by the largest possible unit size
+        // Or at least by entA's size + a reasonable margin.
+        const margin = entA.type.hitSize + 50; // 50 is a buffer for 'BigUnit'
+        this._searchRect.setRect(
+            entA.position.x, 
+            entA.position.y, 
+            entA.type.hitSize * 2 + margin, 
+            entA.type.hitSize * 2 + margin
+        );
 
-      // ENTITY vs ENTITY
-      const nearbyE = Global.qtreeE.query(this._rect)
-      for (let p of nearbyE) {
-        const ent = Global.entities[p.index]
-        if (ent === i) continue
-        if (ent.index < i.index && ent.collides(i)) {
-          //PhysicsHandler.ballToBall(ent, i)
-          this.collisions.push(new CollData(ent, i))
+        const nearby = qtreeE.retrieve(this._searchRect);
+
+        for (let p of nearby) {
+            const entB = entities[p.index];
+            // Standard check
+            if (p.index > i && entA.collides(entB)) {
+                this.collisions.push(new CollData(entA, entB));
+            }
         }
-      }
-
-      // ENTITY vs BULLET
-      const nearbyB = Global.qtreeB.query(this._rect)
-      for (let p of nearbyB) {
-        const bullet = Global.bullets[p.index]
-        if (bullet.collides(i)) {
-          this.collisions.push(new CollData(bullet, i))
+        const nearbyBullets = qtreeB.retrieve(entA.hitbox);
+        
+        for (let p of nearbyBullets) {
+          const bullet = bullets[p.index];
+          if (entA.collides(bullet)) {
+            this.collisions.push(new CollData(entA, bullet));
+          }
         }
-      }
+    }
+}
+
+
+  static simulate() {
+  const iterations = 20; // Higher = more stable clusters, but heavier CPU
+  
+  for (let step = 0; step < iterations; step++) {
+    // 1. Re-check the Narrow Phase (The actual distance)
+    for (const col of this.collisions) {
+      // Note: We don't re-run the Quadtree here, 
+      // we just re-verify the math for the pairs we already found.
+      PhysicsHandler.resolvePassiveCollision(col.i, col.o);
     }
   }
 
-  static simulateCol() {
-    for (let c of this.collisions) {
-      c.collide()
-      
-    }
+  // 2. Finally, trigger logic effects (health loss, etc.) only ONCE
+  for (const col of this.collisions) {
+    col.o.collision(col.i);
+    col.i.collision(col.o);
   }
+}
+
 }

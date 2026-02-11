@@ -14,31 +14,31 @@ class Rect {
     this.y = y
     this.width = width
     this.height = height
-    this.setDirections()
   }
   setPos(x, y){
     this.x = x
     this.y = y
-    this.setDirections()
+    
     return this
   }
+  get halfW() { return this.width * 0.5 }
+  get halfH() { return this.height * 0.5 }
+
+  get left()   { return this.x - this.halfW }
+  get right()  { return this.x + this.halfW }
+  get top()    { return this.y - this.halfH }
+  get bottom() { return this.y + this.halfH }
+  
   setRect(x, y, width, height) {
     this.x = x
     this.y = y
     this.width = width
     this.height = height
-    this.setDirections()
+    
     return this
   }
 
-  setDirections() {
-    const hw = this.width * 0.5
-    const hh = this.height * 0.5
-    this.left = this.x - hw
-    this.right = this.x + hw
-    this.top = this.y - hh
-    this.bottom = this.y + hh
-  }
+  
 
   containsXY(x, y) {
     return (
@@ -77,15 +77,33 @@ class Rect {
   }
 
   show(con = Global.ctx) {
-    con.strokeStyle = "#FFFFFF"
-    Draw.lineRect(this.x, this.y, this.width, this.height, true)
+    Draw.colorHex("#FFF")
+    Drawf.lineRect(this.x, this.y, this.width, this.height, true)
   }
+  clampInside(bounds) {
+  if (this.width > bounds.width || this.height > bounds.height) {
+    this.x = bounds.x
+    this.y = bounds.y
+    return this
+  }
+
+  const minX = bounds.left + this.halfW
+  const maxX = bounds.right - this.halfW
+  const minY = bounds.top + this.halfH
+  const maxY = bounds.bottom - this.halfH
+
+  this.x = Math.max(minX, Math.min(this.x, maxX))
+  this.y = Math.max(minY, Math.min(this.y, maxY))
+
+  return this
+}
+
 }
 
 /* ===================== QUADTREE ===================== */
 
 class QuadTree {
-  static MAX_DEPTH = 6
+  static MAX_DEPTH = 7
 
   constructor(boundary, capacity = 4, depth = 0) {
     this.boundary = boundary

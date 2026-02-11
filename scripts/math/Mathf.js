@@ -58,23 +58,45 @@ class Mathf {
   static angleTo(x1, y1, x2, y2){
     let dx = x2 - x1
     let dy = y2 - y1
-    return this.angle(dx, dy)
+    let ang = Math.atan2(dy, dx) * this.radiansToDegrees
+    if(ang < 0) ang += 360
+    return ang
   }
   static rotatePX(p, r){
-    p[0] = this.cos(r) * p[0] - this.sin(r) * p[2]
-    p[2] = this.sin(r) * p[0] + this.cos(r) * p[2]
-  }
-  static rotatePY(p, r){
-    p[1] = this.cos(r) * p[1] - this.sin(r) * p[2]
-    p[1] = this.sin(r) * p[1] + this.cos(r) * p[2]
-  }
-  static rotateX(p, r) {
-    return [
-        this.cos(r) * p[0] - this.sin(r) * p[2],
-        p[1],
-        this.sin(r) * p[0] + this.cos(r) * p[2]
-      ]
-  }
+  const cos = this.cos(r)
+  const sin = this.sin(r)
+
+  const x = p[0]
+  const z = p[2]
+
+  p[0] = cos * x - sin * z
+  p[2] = sin * x + cos * z
+}
+static rotatePY(p, r){
+  const cos = this.cos(r)
+  const sin = this.sin(r)
+
+  const y = p[1]
+  const z = p[2]
+
+  p[1] = cos * y - sin * z
+  p[2] = sin * y + cos * z
+}
+
+  static rotateX(p, r, out = p){
+  const cos = this.cos(r)
+  const sin = this.sin(r)
+
+  const x = p[0]
+  const z = p[2]
+
+  out[0] = cos * x - sin * z
+  out[1] = p[1]
+  out[2] = sin * x + cos * z
+
+  return out
+}
+
   static rotateY(p, r) {
     return [
         p[0],
@@ -84,7 +106,7 @@ class Mathf {
   }
   
 
-  static rand = new Rand()
+  static rand = new Rand(1)
   
   static random(range = 1){
     return this.rand.nextFloat() * range
@@ -108,9 +130,48 @@ class Mathf {
   static lerpUnclamped(min, max, v){
     return min + ((max - min) * v)
   }
+  static fastAtan2(y, x){
+  const ONEQTR_PI = Math.PI / 4
+  const THRQTR_PI = 3 * Math.PI / 4
+
+  let r, angle
+  const absY = Math.abs(y) + 1e-10
+
+  if (x < 0) {
+    r = (x + absY) / (absY - x)
+    angle = THRQTR_PI
+  } else {
+    r = (x - absY) / (x + absY)
+    angle = ONEQTR_PI
+  }
+
+  angle += (0.1963 * r * r - 0.9817) * r
+  return y < 0 ? -angle : angle
+}
+
   static clamp(value, min = 0, max = 1){
-    Math.max(Math.min(value, max), min);
+    return Math.max(Math.min(value, max), min);
   }
   static degToRad = 180 / Math.PI
   static radToDeg = Math.PI / 180
+  
+static lerp(a, b, t) {
+  return a + (b - a) * t;
+}
+
+//////////////////////////////
+// Easing Functions
+//////////////////////////////
+
+static easeInOutCubic(t) {
+  return t < 0.5
+    ? 4 * t * t * t
+    : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
+static easeOutBack(t) {
+  const c1 = 1.70158;
+  const c3 = c1 + 1;
+  return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+}
 }

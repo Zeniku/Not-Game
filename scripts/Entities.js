@@ -1,37 +1,46 @@
+
 class Ent {
-  constructor({
-    data = {},
-    type = new BaseType(),
-    x = 0,
-    y = 0,
-    velX = 0,
-    velY = 0,
-    rotation = 0,
-    team = "Blue"
-  } = {}) {
-    this.data = data //for some not messy storage
-    this.type = type
-    this.position = new Vec(x, y)
-    this.velocity = new Vec(velX, velY)
-    this.lastX = x
-    this.lastY = y
-    this.hitbox = new Rect(x, y, this.type.hitSize * 2, this.type.hitSize * 2)
-    this.maxRadius = Math.sqrt(
-      (this.type.hitSize) ** 2 + (this.type.hitSize) ** 2
-    )
+  constructor(config = {}) {
+    if (Ent._freeUIDs.length > 0) {
+      this.uid = Ent._freeUIDs.pop();
+    } else {
+      this.uid = Ent._uid++;
+    }
+
+    this.index = 0;  // array index, updated by filter
+
+    this.data = config.data || {} //for some not messy storage
+    this.type =  config.type  || new BaseType()
+    this.position = new Vec(config.x || 0, config.y || 0)
+    this.velocity = new Vec(config.velX || 0, config.velY || 0)
+    this.lastX = config.x || 0
+    this.lastY = config.y || 0
+    this.hitbox = new Rect(config.x || 0, config.y || 0, this.type.hitSize*2, this.type.hitSize*2)
+    //this.maxRadius = this.type.hitSize * 2
+    
     this.removed = false
-    this.team = team
-    this.rotation = rotation 
+    this.team = config.team || "Blue"
+    this.rotation = config.rotation || 0
     this.init();
   }
+  
   static create(config = {}){
     // new this(config) bruh me
     let ent = new this(config)
     ent.entrr()
     return ent
   }
+  
+  static _uid = 1;          // for permanent unique IDs
+  static _freeUIDs = [];    // pool for recycling
+
+  remove() {
+    this.removed = true;
+    // recycle UID
+    Ent._freeUIDs.push(this.uid);
+  }
   entrr(){
-    this.id = this.index = Global.entities.length
+    this.index = Global.entities.length
     Global.entities.push(this)
   }
   init(){
@@ -70,10 +79,6 @@ class Ent {
     this.velocity.setPos(x, y)
     return this
   }
-  remove() {
-    //if(this instanceof HpEnt) Global.entities.forEach(e => console.log(e.id))
-    this.removed = true
-  }
   angleTo(p2) {
     let p2Pos = p2.position,
       pPos = this.position;
@@ -93,119 +98,31 @@ class Ent {
   }
 }
 
-class HpEnt extends Ent {
-  constructor(config){
-    super(config)
-    this.health = config.type.health || 0
-    this.immunityTime = 0
-    this.isImmune = false
-  }
-  draw(con = Global.ctx){
-    con.fillStyle = (/*this.highlight*/ false)? "#FFFFFF" : this.type.color
-    super.draw(con) 
-  }
-  update(timestamp){
-    if(this.isImmune){
-      this.immunityTime = Math.min(this.immunityTime + Global.delta, 15)
-      if(this.immunityTime >= 15){
-        this.isImmune = false
-        this.immunityTime = 0
-      }
-    }
-    this.highlight = false
-    if(this.health <= 0){
-      this.health = 0
-      this.remove()
-    }
-    //this.collisions()
-    super.update(timestamp)
-  }
-  collision(other) {
-    if(!(other instanceof HpEnt)) return
-    PhysicsHandler.ballToBall(this, other)
-  }
-  loseHealth(amount){
-    if(!this.isImmune){
-      this.health -= amount
-      this.highlight = true
-      this.isImmune = true
-    }
-  }
-}
 
-class TimedEnt extends Ent {
-  constructor(config) {
-    super(config)
-    this.lifetime = this.type.lifetime || config.lifetime || 0
-    this.time = 0;
-  }
-  update(timestamp) {
-    this.time = Math.min(this.time + Global.delta, this.lifetime)
-    if (this.time >= this.lifetime) {
-      this.remove()
-    }
-    super.update(timestamp)
-  }
-  fin() {
-    return this.time / this.lifetime
-  }
-  fout() {
-    return 1 - this.fin()
-  }
-  fslope(){
-    return (0.5 - Math.abs(this.fin() - 0.5)) * 2
-  }
-}
+class HpEnt extends Components(Position, Velocity, Hitbox, Health, Team)(Entity) {}
 
-class BulletEnt extends TimedEnt {
-  constructor(config){
-    super(config)
-    this.damage = config.type.damage || 0
-    this.peirced = []
-  }
-  update(timestamp){
-    if(this.peirced.length > this.type.peirceNum){
-      this.remove()
-    }
-    this.velocity.setLength(this.type.speed)
-    super.update(timestamp)
-  }
-  entrr(){
-    this.id = this.index = Global.bullets.length
-    Global.bullets.push(this)
-  }
-  collision(other){
-    if(!(this.collides(other) && other.team != this.team)) return 
-    if(other instanceof HpEnt){
-      //e.highlight = true
-      if(!other.isImmune){
-        this.type.hitEffect.createEnt({
-          x: this.position.x,
-          y: this.position.y
-        })
-      }
-      other.loseHealth(this.damage)
-      if(!this.peirced.includes(other)) this.peirced.push(other)
-      if(!this.type.peirces && !other.isImmune) this.remove()
-    }
-  }
-}
 
-class FxEnt extends TimedEnt {
+
+class FxEnt extends Components(Position, Team, TimedLife)(Entity){
   constructor(config){
-    super(config)
+  super(config)
     this.type = config.type
     this.data.angles = []
-    delete this.hitbox
   }
   repeat(amount, length, draw){
-    Angles.randLenVector(this.id, amount, length, draw)
+    //console.log(this.uid)
+    Angles.randLenVector(this.uid, amount, length, draw)
   }
   entrr(){
-    this.id = this.index = Global.effects.length
+    this.index = Global.effects.length
     Global.effects.push(this)
   }
+  remove() {
+    super.remove();
+    Angles.clearCache(this.uid); // free memory
+  }
 }
+
 
 class WeaponMount {
   constructor(config){
@@ -242,20 +159,40 @@ class WeaponMount {
   }
 }
 
-class WeaponEnt extends HpEnt {
-  constructor(config){
-    super(config) 
-    this.weaponMounts = []
+class BulletEnt extends Components(
+  Position,
+  Velocity,
+  Hitbox,
+  TimedLife,
+  Team
+)(Entity) {
+  constructor(config) {
+    super(config);
+    this.damage = config.type?.damage || 0;
+    this.peirced = [];
   }
-  update(timestamp){
-    this.weaponMounts.forEach(m => {
-      if(m instanceof WeaponMount){
-        let x = Math.cos(this.rotation * Mathf.degToRad) * m.type.x
-        let y = Math.sin(this.rotation * Mathf.degToRad) * m.type.y
-        m.position.setPos(x + this.position.x, y + this.position.y)
-        m.update(timestamp)
+
+  update(dt) {
+    this.velocity.setLength(this.type.speed);
+    super.update(dt);
+  }
+  entrr(){
+    this.index = Global.bullets.length
+    Global.bullets.push(this)
+  }
+  collision(other){
+    if(!(this.collides(other) && other.team != this.team)) return 
+    if(other.has(Health)){
+      //e.highlight = true
+      if(!other.isImmune){
+        this.type.hitEffect.createEnt({
+          x: this.position.x,
+          y: this.position.y
+        })  
       }
-    })
-    super.update(timestamp)
+      other.loseHealth(this.damage)
+      if(!this.peirced.includes(other)) this.peirced.push(other)
+      if(!this.type.peirces && !other.isImmune) this.remove()
+    }
   }
 }
