@@ -1,5 +1,6 @@
 class Camera extends Rect{
   constructor(x, y, width, height) {
+    
     super(x, y, width, height)
     this.vel = new Vec(0, 0);
 
@@ -30,26 +31,26 @@ class Camera extends Rect{
       this.shakeTime -= dt;
     }
   }
-  getMatrix() {
+  // Inside Camera class
+getMatrix() {
   const w = Global.width;
   const h = Global.height;
+  const { x, y } = this.getRenderPosition(); // Use the shakable position
 
-  const pos = this.getRenderPosition();
+  // 1. Orthographic projection (scaling to NDC: -1 to 1)
+  const sx = 2 / (w / this.zoom);
+  const sy = 2 / (h / this.zoom);
 
-  const sx = 2 / w;
-  const sy = 2 / h;
-
+  // 2. Camera Translation (moving the world)
+  // We negate x and y to "pan" the camera by moving the world in opposite direction
   return new Float32Array([
-    sx * this.zoom,  0,  0,
-    0, -sy * this.zoom, 0,
-
-    // THIS IS THE IMPORTANT PART
-    -pos.x * sx * this.zoom,
-     pos.y * sy * this.zoom,
-
-    1
+    sx, 0,  0, 0,
+    0,  sy, 0, 0,
+    0,  0,  1, 0,
+    -x * sx, -y * sy, 0, 1
   ]);
 }
+
 
 
   getRenderPosition() {
@@ -63,8 +64,8 @@ class Camera extends Rect{
 
     return { x, y };
   }
+  
   zoom = 1
-
   // optional goodies
   shakeX = 0
   shakeY = 0
@@ -196,9 +197,10 @@ class SpeedFollow {
 
     // integrate
     camera.setPos(
-      camera.x + camera.vel.x * dt,
-      camera.y + camera.vel.y * dt
-    )
+  camera.x + camera.vel.x * dt,
+  camera.y + camera.vel.y * dt
+);
+
   }
 }
 

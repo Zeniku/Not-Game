@@ -1,78 +1,107 @@
+/**
+ * Main Game Controller
+ */
+
 class Game {
+  // --- 1. Setup & Lifecycle ---
+
+  async loadAssets() {
+    console.log("Loading assets...");
+    Global.atlas = new TextureAtlas(Global.gl);
+    
+    const manifest = { "grass": "assets/bluonixite-stone1.png" };
+    await Global.atlas.load(manifest);
+    
+    console.log("Assets loaded:", Global.atlas.getNames());
+    
+    // Dependencies that require assets to be loaded first
+    await Blocks.load();
+  }
+
   init() {
-  this.resize();
+    this.resize();
+    const { width, height } = Global;
 
-  const { width, height } = Global;
+   
+    Draw.init(Global.gl);
+    Effects.load();
+    Units.load();
 
-  this.mousePosition = new Vec(width / 2, height / 2);
-  this.lastMousePosition = new Vec(width / 2, height / 2);
-
-  this.world = new World(4000 * 2, 4000 * 2, 4000 * 4, 4000 * 4);
-  let worldW = this.world.width
-  let worldH = this.world.height
-  this.camera = new Camera(worldW / 2, worldW / 2, width, height);
-  this.camera.setMode(new SpeedFollow(this.mousePosition));
-
-  Draw.init(Global.gl);
-  Effects.load();
-  Units.load();
-
-  // entities...
-  for(let i = 0; i < 2500; i++){
-      Units.unit.createEnt({
-        x: Angles.trnsx(Mathf.random(360), Mathf.random(worldW*0.5)) + worldW*0.5,
-        y: Angles.trnsy(Mathf.random(360), Mathf.random(worldH*0.5)) + worldH*0.5,
-      }).velocity.setLength(10).setAngle(Mathf.random(360))
-      Units.bigUnit.createEnt({
-        x: Angles.trnsx(Mathf.random(360), Mathf.random(worldW*0.5)) + worldW*0.5,
-        y: Angles.trnsy(Mathf.random(360), Mathf.random(worldH*0.5)) + worldH*0.5,
-      }).velocity.setLength(0.5).setAngle(Mathf.random(360))
-
-    }
+    // Initialize World & Camera
+    this.world = new World(400, 400);
+    const worldW = this.world.width;
+    const worldH = this.world.height;
+    // Initialize Input & Rendering
+    this.mousePosition = new Vec(worldW / 2, worldH / 2);
+    this.lastMousePosition = new Vec(worldW / 2, height / 2);
+    this.playerCamPosition = new Vec(worldW / 2, worldH / 2)
     
+    this.camera = new Camera(worldW / 2, worldH / 2, width, height);
+    this.camera.setMode(new SpeedFollow(this.playerCamPosition));
+
+    // Spawn Entities
     let bullet = new Bullet({
-      hitSize: 5,
+      peirceNum: 200,
+      lifetime: 3000,
+      hitSize: 10,
       speed: 20,
-      damage: 250,
-      peirceNum: 120,
-      lifetime: 420 * 5,
-      hitEffect: Effects.splash,
-      color: "#FFFFFF"
+      hitEffect: Effects.splash
     })
-    
-    for (let i = 0; i < 20; i++) {
-      bullet.createEnt({
-        team: "Red",
-        x: Angles.trnsx(Mathf.random(360), Mathf.random(width)) + width,
-        y: Angles.trnsy(Mathf.random(360), Mathf.random(height)) + height,
-      }).velocity.setFromPolar(1000).setAngle(Mathf.random(360))
+    for(let i = 0; i < 100; i++){
+    bullet.createEnt({
+        x: Angles.trnsx(Mathf.random(360), Mathf.random(worldW * 0.5)) + worldW * 0.5,
+        y: Angles.trnsy(Mathf.random(360), Mathf.random(worldH * 0.5)) + worldH * 0.5,
+        rotation: Mathf.random(360)
+      }).team = "Red"
     }
-  for(let q of Global.qIndex){
-      Global[q] = new QuadTree(this.world, 4)
+    this.spawnInitialUnits(200);
+
+    // Initialize Spatial Partitioning (QuadTrees)
+    for (let q of Global.qIndex) {
+      Global[q] = new QuadTree(this.world.bounds, 4);
     }
-    
-  this.resize = this.resize.bind(this);
-  window.addEventListener("resize", this.resize);
-}
+
+    // Bind events
+    this.resize = this.resize.bind(this);
+    window.addEventListener("resize", this.resize);
+  }
+
+  spawnInitialUnits(count) {
+    const worldW = this.world.width;
+    const worldH = this.world.height;
+
+    for (let i = 0; i < count; i++) {
+      // Standard Units
+      Units.unit.createEnt({
+        x: Angles.trnsx(Mathf.random(360), Mathf.random(worldW * 0.5)) + worldW * 0.5,
+        y: Angles.trnsy(Mathf.random(360), Mathf.random(worldH * 0.5)) + worldH * 0.5,
+      }).velocity.setLength(10).setAngle(Mathf.random(360));
+
+      // Heavy Units
+      Units.bigUnit.createEnt({
+        x: Angles.trnsx(Mathf.random(360), Mathf.random(worldW * 0.5)) + worldW * 0.5,
+        y: Angles.trnsy(Mathf.random(360), Mathf.random(worldH * 0.5)) + worldH * 0.5,
+      }).velocity.setLength(0.5).setAngle(Mathf.random(360));
+    }
+  }
 
   resize() {
-  const dpr = window.devicePixelRatio || 1;
+    const dpr = window.devicePixelRatio || 1;
+    const w = Math.floor(window.innerWidth * dpr);
+    const h = Math.floor(window.innerHeight * dpr);
 
-  const w = Math.floor(window.innerWidth * dpr);
-  const h = Math.floor(window.innerHeight * dpr);
+    Global.canvas.width = w;
+    Global.canvas.height = h;
+    Global.width = w;
+    Global.height = h;
 
-  Global.canvas.width  = w;
-  Global.canvas.height = h;
+    Global.gl.viewport(0, 0, w, h);
+  }
 
-  Global.width  = w;
-  Global.height = h;
-
-  Global.gl.viewport(0, 0, w, h);
-}
-
+  // --- 2. Game Loop & Logic ---
 
   startGameLoop() {
-    let step = (timestamp) => {
+    const step = (timestamp) => {
       Global.animationId = requestAnimationFrame(step);
 
       if (Global.lastTimeStamp == null) {
@@ -83,11 +112,9 @@ class Game {
       const elapsed = timestamp - Global.lastTimeStamp;
       Global.lastTimeStamp = timestamp;
 
-      // real delta in seconds (clamped)
+      // Calculate Delta (seconds, clamped to avoid massive jumps)
       let delta = Math.min(elapsed, 100) / Global.fps;
-
-      // apply slow/fast time
-      Global.delta = delta / Global.svalue;
+      Global.delta = delta / Global.svalue; // Apply time-scale (slow-mo/fast)
 
       this.update(Global.delta);
       this.draw(timestamp, elapsed);
@@ -97,177 +124,191 @@ class Game {
   }
 
   update(delta) {
+    let joy = TouchHandler.joystick
+    this.playerCamPosition.add(joy.inputX * 200, -joy.inputZ * 200)
+    
     this.camera.update(Global.delta);
-    this.camera.clampInside(this.world)
-    DebugEntityIDs.check(Global.entities)
+    this.camera.clampInside(this.world.bounds);
+    //  console.log(this.camera)
+    
     if (Global.paused) return;
+
+    // 1. Clean up dead entities
     this.filterEntities();
+
+    // 2. Refresh spatial data for collisions
     this.updateQuads();
+
+    // 3. Physics & Collisions
     EntityCollisions.update();
     EntityCollisions.simulate();
+
+    // 4. Final positioning
     this.updateQuads();
     this.updateEntities(delta);
   }
 
   updateEntities(delta) {
-    this.entArrUp(Global.entities, delta);
-    this.entArrUp(Global.bullets, delta);
-    this.entArrUp(Global.effects, delta);
-  }
-
-  entArrUp(array, delta) {
-    for (let i = 0; i < array.length; i++) {
-      const e = array[i];
-      e.update(delta);
-      this.constraint(e);
+    const groups = [Global.entities, Global.bullets, Global.effects];
+    for (const group of groups) {
+      for (let i = 0; i < group.length; i++) {
+        const e = group[i];
+        e.update(delta);
+        this.applyWorldConstraints(e);
+      }
     }
   }
 
-  constraint(ent) {
-    let { width, height } = this.world;
-    let bouncedX = false
-    let bouncedY = false 
-    if(ent.has(Position)){
-      let position = ent.position
-      let hitsize = ent.type.hitSize
-      
-      if (position.x > width - hitsize) {
-        position.x = width - hitsize;
-        bouncedX = true
-      } else if (position.x < 0 + hitsize) {
-        position.x = 0 + hitsize;
-        bouncedX = true
-      }
-      if (position.y > height- hitsize) {
-        position.y = height - hitsize;
-        bouncedY = true
-      } else if (position.y < 0 + hitsize) {
-        position.y = 0 + hitsize;
-        bouncedY = true
-      }
+  /**
+   * Keeps entities inside world bounds and handles wall bouncing
+   */
+  applyWorldConstraints(ent) {
+    if (!ent.has(Position)) return;
+
+    const { width, height } = this.world;
+    const pos = ent.position;
+    const hit = ent.type.hitSize;
+    let bouncedX = false;
+    let bouncedY = false;
+
+    // X-Axis Bounds
+    if (pos.x > width - hit) { pos.x = width - hit; bouncedX = true; }
+    else if (pos.x < hit) { pos.x = hit; bouncedX = true; }
+
+    // Y-Axis Bounds
+    if (pos.y > height - hit) { pos.y = height - hit; bouncedY = true; }
+    else if (pos.y < hit) { pos.y = hit; bouncedY = true; }
+
+    // Reverse velocity on bounce
+    if (ent.has(Velocity)) {
+      if (bouncedX) ent.velocity.x *= -1;
+      if (bouncedY) ent.velocity.y *= -1;
     }
+  }
+
+  // --- 3. Rendering ---
+
+  draw(timestamp, elapsed) {
+    const gl = Global.gl;
+    gl.clear(gl.COLOR_BUFFER_BIT);
+  
+    // Get the camera matrix
+    const camMat = this.camera.getMatrix();
     
-    if(ent.has(Velocity)){
-      let velocity = ent.velocity
-      if(bouncedX) velocity.x *= -0.995
-      if(bouncedY) velocity.y *= -0.995
+    // Set the global projection
+    Draw.set2dMatrix(camMat); 
+  
+    Draw.begin2D();
+    //this.world.drawGrid(this.camera);
+    this.drawEntities(this.camera);
+    Draw.end();
+    
+    // UI usually needs a fixed matrix (no camera movement)
+    Draw.set2dMatrix(Matrix4.ortho(0, w, h, 0, -1, 1));
+    Draw.begin2D();
+    TouchHandler.drawUI();
+    Draw.end();
+  }
+
+  drawEntities(boundary) {
+    if (Global.drawDebug) {
+      Global.qtreeE.draw();
+      this.drawDebugEntList(Global.entities);
+      this.drawDebugEntList(Global.bullets);
+      this.drawDebugEntList(Global.effects);
+    }
+
+    if (Global.disableEntDraw) return;
+
+    // Query QuadTree to only draw what the camera sees
+    this.drawVisibleFromQuad(Global.qtreeE, Global.entities, boundary);
+    this.drawVisibleFromQuad(Global.qtreeB, Global.bullets, boundary);
+    this.drawVisibleFromQuad(Global.qtreeFx, Global.effects, boundary);
+  }
+
+  drawVisibleFromQuad(qtree, array, boundary) {
+    const visibleItems = qtree.query(boundary);
+    for (let i = 0; i < visibleItems.length; i++) {
+      const entity = array[visibleItems[i].index];
+      
+      if (entity) entity.draw();
     }
   }
 
-  filterEntInPlace(array) {
-    let write = 0;
+  drawDebugEntList(array) {
+    for (let e of array) {
+      Draw.colorHex("FFF");
+      Draw.circle(e.position.x, e.position.y, 2);
+      if (e.hitbox) e.hitbox.show();
+    }
+  }
 
-    for (let read = 0; read < array.length; read++) {
-      const e = array[read];
+  // --- 4. Data Management ---
+  //removes dead entities
+  filterEntities() {
+    this.filterArrayInPlace(Global.entities);
+    this.filterArrayInPlace(Global.bullets);
+    this.filterArrayInPlace(Global.effects);
+  }
+
+  filterArrayInPlace(array) {
+    let writeIndex = 0;
+    for (let readIndex = 0; readIndex < array.length; readIndex++) {
+      const e = array[readIndex];
       if (e && !e.removed) {
-        e.index = write;
-        array[write++] = e;
+        e.index = writeIndex;
+        array[writeIndex++] = e;
       }
     }
-
-    array.length = write;
-  }
-
-  filterEntities() {
-    this.filterEntInPlace(Global.entities);
-    this.filterEntInPlace(Global.bullets);
-    this.filterEntInPlace(Global.effects);
+    array.length = writeIndex;
   }
 
   updateQuads() {
-    if (Global.paused) return;
+    
     Global.qtreeE.update(Global.entities);
     Global.qtreeB.update(Global.bullets);
     Global.qtreeFx.update(Global.effects);
   }
-  drawDebugEnt(array){
-    for(let e of array){
-      Draw.colorHex("FFF")
-      Draw.circle(e.position.x, e.position.y, 2)
-      if(e.hitbox) e.hitbox.show()
-      //Draw.circle(e.position.x, e.position.y, e.type.hitSize)
-    }
-  }
-  draw(timestamp, elapsed){
-  
-  Draw.setMatrix(this.camera.getMatrix());
-
-  this.drawEntities(this.camera);
-
-  Draw.flush();
 }
 
-
-  drawEntities(boundary) {
-    if(Global.drawDebug){
-      Global.qtreeE.draw()
-
-      this.drawDebugEnt(Global.entities)
-      this.drawDebugEnt(Global.bullets)
-      this.drawDebugEnt(Global.effects)
-
-    }
-    if (Global.disableEntDraw) return;
-
-    this.drawInsideScreen(Global.qtreeE, Global.entities, boundary);
-    this.drawInsideScreen(Global.qtreeB, Global.bullets, boundary);
-    this.drawInsideScreen(Global.qtreeFx, Global.effects, boundary);
-  }
-
-  drawInsideScreen(quadtree, array, cameraBoundary) {
-  // Query the QuadTree for only entities within the camera's view
-  const visibleItems = quadtree.query(cameraBoundary);
-  
-  for (let i = 0; i < visibleItems.length; i++) {
-    const entity = array[visibleItems[i].index];
-    if (entity) entity.draw(); // No longer passing ctx
-  }
-}
-
-}
+/**
+ * Utility for verifying entity integrity
+ */
 class DebugEntityIDs {
   static check(entities) {
     const seen = new Set();
-
     for (const e of entities) {
       if (seen.has(e.index)) {
-        throw new Error(
-          `[Collision Debug] Duplicate entity index: ${e.index}`
-        );
+        throw new Error(`[Collision Debug] Duplicate entity index: ${e.index}`);
       }
       seen.add(e.index);
     }
   }
 }
 
-function text(t, x, y, draw){
-  draw.fillStyle = "white"
-  draw.font = "10px Arial";
-  draw.fillText(t, x, y);
-};
+// --- Entry Point ---
 
-window.onload = () => {
- Global.init()
-  window.game = new Game()
-  game.init()
+window.onload = async () => {
+  Global.init();
+  const game = new Game();
+  window.game = game;
 
+  await game.loadAssets();
+  game.init();
+  TouchHandler.init()
+
+  // Input Handling
   Global.canvas.addEventListener("touchmove", e => {
     e.preventDefault();
-
     const rect = Global.canvas.getBoundingClientRect();
     const dpr = window.devicePixelRatio || 1;
 
     const canvasX = (e.touches[0].clientX - rect.left) * dpr;
     const canvasY = (e.touches[0].clientY - rect.top) * dpr;
-
-    // save last pos
-    game.lastMousePosition.setPosv(game.mousePosition);
-
-    // convert screen → world
+    game.lastMousePosition.set(game.mousePosition);
     const worldPos = game.camera.screenToWorld(canvasX, canvasY);
-    game.mousePosition.setPos(worldPos.x, worldPos.y);
-});
+    game.mousePosition.set(worldPos.x, worldPos.y);
+  }, { passive: false });
 
-  
-  game.startGameLoop()
-}
+  game.startGameLoop();
+};

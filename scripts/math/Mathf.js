@@ -1,5 +1,6 @@
 class Mathf {
   static {
+    this.FLOAT_ROUNDING_ERROR = 0.000001;
     this.PI = 3.1415927;
     this.pi = this.PI; 
     this.halfPi = this.PI/2;
@@ -40,6 +41,7 @@ class Mathf {
   static cosDeg(degrees){
     return this.sinTable[Math.round((degrees + 90) * this.degToIndex) & this.sinMask];
   }
+  
   static dst(x1, y1, x2, y2){
     let dx = x1 - x2
     let dy = y1 - y2

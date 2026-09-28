@@ -135,7 +135,7 @@ const Position = Component("Position", {
     this.lastY = y;
   },
   setPos(x, y) {
-    this.position.setPos(x, y)
+    this.position.set(x, y)
     return this
   },
   setPosv(v) {
@@ -177,7 +177,7 @@ const Velocity = Component("Velocity", {
     this.lastX = this.position.x;
     this.lastY = this.position.y;
 
-    this.velocity.scl(0.995, 0.995);
+    //this.velocity.scl(0.995, 0.995);
     if (this.velocity.nearZero()) this.velocity.setLength(0);
 
     this.position.add(
@@ -229,9 +229,7 @@ const TimedLife = Component("TimedLife", {
     this.lifetime = this.type.lifetime //|| config.lifetime || 0;
     this.time = 0;
   },
-
   update(dt) {
-
     this.time = Math.min(this.time + Global.delta, this.lifetime);
     if (this.time >= this.lifetime) this.remove();
   },
@@ -243,6 +241,9 @@ const TimedLife = Component("TimedLife", {
   },
   fslope(){
     return (0.5 - Math.abs(this.fin() - 0.5)) * 2
+  },
+  fslop(){
+    return Math.min(1, Math.pow(this.fslope() * 4, 2))
   }
 });
 const Hitbox = Component("Hitbox", {
@@ -272,4 +273,3 @@ const Hitbox = Component("Hitbox", {
     return false
   }
 });
-

@@ -1,12 +1,24 @@
+:root {
+  --bg: #0f172a;
+  --panel-bg: rgba(15, 23, 42, 0.95);
+  --header-bg: #1e293b;
+  --border: #334155;
+  --text: #e2e8f0;
+  --text-muted: #94a3b8;
+  --accent: #3b82f6;
+  --danger: #ef4444;
+}
+
 html, body {
-  font-size: 15pt;
-  background: #2E3369;
-  align-items: center;
   margin: 0;
   padding: 0;
   overflow: hidden;
-  font-family: sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', system-ui, sans-serif;
+  height: 100%;
 }
+
 
 .game-container {
   position: relative;

@@ -1,105 +1,12 @@
 
-class Ent {
-  constructor(config = {}) {
-    if (Ent._freeUIDs.length > 0) {
-      this.uid = Ent._freeUIDs.pop();
-    } else {
-      this.uid = Ent._uid++;
-    }
 
-    this.index = 0;  // array index, updated by filter
 
-    this.data = config.data || {} //for some not messy storage
-    this.type =  config.type  || new BaseType()
-    this.position = new Vec(config.x || 0, config.y || 0)
-    this.velocity = new Vec(config.velX || 0, config.velY || 0)
-    this.lastX = config.x || 0
-    this.lastY = config.y || 0
-    this.hitbox = new Rect(config.x || 0, config.y || 0, this.type.hitSize*2, this.type.hitSize*2)
-    //this.maxRadius = this.type.hitSize * 2
-    
-    this.removed = false
-    this.team = config.team || "Blue"
-    this.rotation = config.rotation || 0
-    this.init();
-  }
-  
-  static create(config = {}){
-    // new this(config) bruh me
-    let ent = new this(config)
-    ent.entrr()
-    return ent
-  }
-  
-  static _uid = 1;          // for permanent unique IDs
-  static _freeUIDs = [];    // pool for recycling
-
-  remove() {
-    this.removed = true;
-    // recycle UID
-    Ent._freeUIDs.push(this.uid);
-  }
-  entrr(){
-    this.index = Global.entities.length
-    Global.entities.push(this)
-  }
-  init(){
-    this.type.init(this)
-  }
-  update(timestamp) {
-    let vel = this.velocity,
-      pos = this.position
-    this.lastX = pos.x
-    this.lastY = pos.y
-    vel.scl(0.995, 0.995) //friction i guess
-    if(vel.nearZero()) vel.setLength(0)
-    pos.add(vel.x * Global.delta, vel.y * Global.delta)
-    if(this.hitbox) this.hitbox.setPos(pos.x, pos.y)
-    this.type.update(this, timestamp)
-    
-  }
-  rot() {
-    return this.velocity.getAngle()
-  }
-  draw(con = Global.ctx) {
-    //if(this.hitbox) this.hitbox.show(con)
-    this.type.draw(this, con);
-  }
-  setPos(x, y) {
-    this.position.setPos(x, y)
-    return this
-  }
-  setPosv(v) {
-    return this.setPos(v.x, v.y)
-  }
-  setVelv(v) {
-    return this.setVel(v.x, v.y)
-  }
-  setVel(x, y) {
-    this.velocity.setPos(x, y)
-    return this
-  }
-  angleTo(p2) {
-    let p2Pos = p2.position,
-      pPos = this.position;
-    return Math.atan2(p2Pos.y - pPos.y, p2Pos.x - pPos.x);
-  }
-  distanceTo(p2) {
-    let p2Pos = p2.position,
-      pPos = this.position;
-    return Mathf.dst2(pPos.x, pPos.y, p2Pos.x, p2Pos.y);
-  }
-  collides(other){
-    if(other instanceof Ent){
-      let rad = this.type.hitSize + other.type.hitSize
-      return (this.distanceTo(other) <= rad * rad)
-    }
-    return false
+class HpEnt extends Components(Position, Velocity, Hitbox, Health, Team)(Entity) {
+  update(){
+    super.update()
+    this.velocity.scl(0.995, 0.995)
   }
 }
-
-
-class HpEnt extends Components(Position, Velocity, Hitbox, Health, Team)(Entity) {}
 
 
 
@@ -111,7 +18,10 @@ class FxEnt extends Components(Position, Team, TimedLife)(Entity){
   }
   repeat(amount, length, draw){
     //console.log(this.uid)
-    Angles.randLenVector(this.uid, amount, length, draw)
+    Angles.randLenVectors(this.uid, amount, length, draw)
+  }
+  repeatAngles(amount, angle, range, length, draw){
+    Angles.randLenVectorsAngle(this.uid, amount, length, angle, range, draw)
   }
   entrr(){
     this.index = Global.effects.length
@@ -119,7 +29,7 @@ class FxEnt extends Components(Position, Team, TimedLife)(Entity){
   }
   remove() {
     super.remove();
-    Angles.clearCache(this.uid); // free memory
+    //Angles.clearCache(this.uid); // free memory
   }
 }
 
@@ -151,7 +61,7 @@ class WeaponMount {
     }
   }
   shoot(bulletType, x, y){
-    bulletType.create({
+    bulletType.createEnt({
       x: x,
       y: y,
       rotation: this.rotation
@@ -171,9 +81,16 @@ class BulletEnt extends Components(
     this.damage = config.type?.damage || 0;
     this.peirced = [];
   }
-
+  
+  static createBullet(config = {}){
+    // new this(config) bruh me
+    let bullet = this.create(config)
+    bullet.setPos(config.x, config.y)
+    bullet.velocity.trns(config.rotation, config.type.speed)
+    return bullet
+  }
   update(dt) {
-    this.velocity.setLength(this.type.speed);
+    //this.velocity.setLength(this.type.speed);
     super.update(dt);
   }
   entrr(){
@@ -185,6 +102,7 @@ class BulletEnt extends Components(
     if(other.has(Health)){
       //e.highlight = true
       if(!other.isImmune){
+        //console.log(this.type)
         this.type.hitEffect.createEnt({
           x: this.position.x,
           y: this.position.y
@@ -194,5 +112,45 @@ class BulletEnt extends Components(
       if(!this.peirced.includes(other)) this.peirced.push(other)
       if(!this.type.peirces && !other.isImmune) this.remove()
     }
+  }
+}
+
+class Building extends Components(Position, Health, Team)(Entity) {
+  constructor(config) {
+    super(config);
+    this.block = config.block; // Reference to the BlockType
+    this.tileX = config.tileX;
+    this.tileY = config.tileY;
+    
+    // Center the entity in the middle of the multi-tile area
+    const size = this.block.size * Global.world.tileSize;
+    this.position.set(
+      this.tileX * Global.world.tileSize + size / 2,
+      this.tileY * Global.world.tileSize + size / 2
+    );
+    
+    // Set Hitbox to match the full block size
+    this.hitbox = new Rect(
+      this.position.x, 
+      this.position.y, 
+      size, 
+      size
+    );
+  }
+
+  // Override remove to clean up the grid
+  remove() {
+    super.remove();
+    Global.world.removeBlock(this.tileX, this.tileY);
+  }
+
+  update(dt) {
+    // Buildings don't move, so we only update logic (Health, Shooting, etc.)
+    super.update(dt);
+    this.block.updateBuilding(this, dt); // Call the specific block logic
+  }
+
+  draw(con) {
+    this.block.drawBuilding(this, con);
   }
 }

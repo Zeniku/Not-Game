@@ -74,5 +74,22 @@ class PhysicsHandler {
   b.velocity.x += ix / mb;
   b.velocity.y += iy / mb;
 }
+constraint(ent) {
+  // ... Your existing world-edge bounds check ...
+
+  // NEW: Static Wall Collision
+  if (ent.has(Position) && ent.has(Velocity)) {
+    const pos = ent.position;
+    const size = ent.type.hitSize;
+
+    // Check 4 points around the unit (or more depending on size)
+    if (game.world.isSolid(pos.x + size, pos.y) || game.world.isSolid(pos.x - size, pos.y)) {
+      ent.velocity.x *= -1; // Bounce
+    }
+    if (this.world.isSolid(pos.x, pos.y + size) || game.world.isSolid(pos.x, pos.y - size)) {
+      ent.velocity.y *= -1; // Bounce
+    }
+  }
+}
 
 }

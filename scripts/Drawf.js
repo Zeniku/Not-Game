@@ -8,13 +8,13 @@ class Drawf {
     Draw.circle(x, y, 1)
   }
 
-  static lineRect(x, y, width, height, center = false){
+  static lineRect(x, y, width, height, thickness,  center = false){
     let cx = x, cy = y
     if(center){
       cx = x - width * 0.5
       cy = y - height * 0.5
     }
 
-    Lines.rect(cx, cy, width, height)
+    Lines.rect(cx, cy, width, height, thickness)
   }
 }

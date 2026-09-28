@@ -1,10 +1,71 @@
-class Point {
-  constructor(x, y, index) {
-    this.x = x
-    this.y = y
-    this.index = index
+/* ===================== OBJECT POOLS ===================== */
+
+class PointPool {
+  static pool = [];
+  static get(x, y, index) {
+    if (this.pool.length > 0) {
+      const p = this.pool.pop();
+      p.x = x;
+      p.y = y;
+      p.index = index;
+      return p;
+    }
+    return new Point(x, y, index);
+  }
+  static release(p) {
+    this.pool.push(p);
   }
 }
+
+class RectPool {
+  static pool = [];
+  static get(x, y, w, h) {
+    if (this.pool.length > 0) {
+      const r = this.pool.pop();
+      r.x = x;
+      r.y = y;
+      r.width = w;
+      r.height = h;
+      return r;
+    }
+    return new Rect(x, y, w, h);
+  }
+  static release(r) {
+    this.pool.push(r);
+  }
+}
+
+class QuadTreePool {
+  static pool = [];
+  static get(boundary, capacity, depth) {
+    if (this.pool.length > 0) {
+      const q = this.pool.pop();
+      q.boundary = boundary;
+      q.capacity = capacity;
+      q.depth = depth;
+      q.points.length = 0;
+      q.quadrants = null;
+      return q;
+    }
+    return new QuadTree(boundary, capacity, depth);
+  }
+  static release(q) {
+    this.pool.push(q);
+  }
+}
+
+/* ===================== POINT & RECT ===================== */
+
+class Point {
+  constructor(x, y, index) {
+    this.x = x;
+    this.y = y;
+    this.index = index;
+  }
+}
+
+/* ===================== QUADTREE ===================== */
+
 
 /* ===================== RECT ===================== */
 
@@ -63,24 +124,26 @@ class Rect {
   }
 
   subdivide(dir) {
-    const hw = this.width * 0.25
-    const hh = this.height * 0.25
-    const w = this.width * 0.5
-    const h = this.height * 0.5
-
+    const hw = this.width * 0.25;
+    const hh = this.height * 0.25;
+    const w = this.width * 0.5;
+    const h = this.height * 0.5;
+    // Modified to use the Rect Pool
     switch (dir) {
-      case 0: return new Rect(this.x - hw, this.y - hh, w, h) // NW
-      case 1: return new Rect(this.x + hw, this.y - hh, w, h) // NE
-      case 2: return new Rect(this.x - hw, this.y + hh, w, h) // SW
-      case 3: return new Rect(this.x + hw, this.y + hh, w, h) // SE
+      case 0: return RectPool.get(this.x - hw, this.y - hh, w, h); // NW
+      case 1: return RectPool.get(this.x + hw, this.y - hh, w, h); // NE
+      case 2: return RectPool.get(this.x - hw, this.y + hh, w, h); // SW
+      case 3: return RectPool.get(this.x + hw, this.y + hh, w, h); // SE
     }
   }
 
-  show(con = Global.ctx) {
+  show() {
     Draw.colorHex("#FFF")
-    Drawf.lineRect(this.x, this.y, this.width, this.height, true)
+    Drawf.lineRect(this.x, this.y, this.width, this.height, 3, true)
   }
+  
   clampInside(bounds) {
+  //if(!this.intersect(bounds)) return;
   if (this.width > bounds.width || this.height > bounds.height) {
     this.x = bounds.x
     this.y = bounds.y
@@ -103,7 +166,8 @@ class Rect {
 /* ===================== QUADTREE ===================== */
 
 class QuadTree {
-  static MAX_DEPTH = 7
+  static MAX_DEPTH = 8
+  static _sharedQueryArray = []; // Shared array to avoid [] creation lag
 
   constructor(boundary, capacity = 4, depth = 0) {
     this.boundary = boundary
@@ -135,31 +199,46 @@ class QuadTree {
   }
 
   subdivide() {
-    this.quadrants = new Array(4)
+    this.quadrants = new Array(4);
     for (let i = 0; i < 4; i++) {
-      this.quadrants[i] = new QuadTree(
+      // Uses QuadTree Pool and Rect Pool
+      this.quadrants[i] = QuadTreePool.get(
         this.boundary.subdivide(i),
         this.capacity,
         this.depth + 1
-      )
+      );
     }
 
-    // Move points into children
     for (let p of this.points) {
       for (let q of this.quadrants) {
-        if (q.insert(p)) break
+        if (q.insert(p)) break;
       }
     }
-
-    this.points.length = 0
+    this.points.length = 0;
   }
 
-  retrieve(range, found = [], show = false) {
+  // In QuadTree class
+retrieve(range, found = []) {
+  if (!this.boundary.intersect(range)) return found;
+
+  for (let p of this.points) {
+    if (range.contains(p)) found.push(p);
+  }
+
+  if (this.divided()) {
+    for (let q of this.quadrants) {
+      q.retrieve(range, found);
+    }
+  }
+  return found;
+}
+
+  retrieveRange(range, found = [], show = false) {
     if (!this.boundary.intersect(range)) return found
     
-    //this.boundary.show()
+    if(show) this.boundary.show()
     for (let p of this.points) {
-      if (range.contains(p)) found.push(p)
+     found.push(p)
     }
 
     if (this.divided()) {
@@ -172,7 +251,8 @@ class QuadTree {
   }
 
   query(range) {
-    return this.retrieve(range, [])
+    QuadTree._sharedQueryArray.length = 0;
+    return this.retrieve(range, QuadTree._sharedQueryArray);
   }
 
   near(x, y, w, h, callback) {
@@ -200,19 +280,30 @@ class QuadTree {
   }
 
   clear() {
-    this.points.length = 0
-    if (this.divided()) {
-      for (let q of this.quadrants) q.clear()
+    // 1. Return points to pool
+    for (let i = 0; i < this.points.length; i++) {
+      PointPool.release(this.points[i]);
     }
-    this.quadrants = null
+    this.points.length = 0;
+
+    // 2. Recursively clear and return quadrants to pool
+    if (this.divided()) {
+      for (let q of this.quadrants) {
+        q.clear();
+        RectPool.release(q.boundary); // Drop the boundary rect back into the pool
+        QuadTreePool.release(q);      // Drop the node back into the pool
+      }
+    }
+    this.quadrants = null;
   }
 
   update(entities) {
-    this.clear()
-    for (let e of entities) {
-      this.insert(new Point(e.position.x, e.position.y, e.index))
+    this.clear();
+    for (let i = 0; i < entities.length; i++) {
+      let e = entities[i];
+      if (e.removed) continue;
+      // Uses Point Pool
+      this.insert(PointPool.get(e.position.x, e.position.y, e.index));
     }
   }
 }
-
-console.log("Optimized QuadTree")
